@@ -29,7 +29,8 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: c.background },
           }}
         >
-          <Stack.Screen name="index" options={{ title: 'Tasks' }} />
+          <Stack.Screen name="index" options={{ title: 'Today' }} />
+          <Stack.Screen name="tasks" options={{ title: 'Tasks' }} />
           <Stack.Screen name="task/[id]" options={{ title: 'Task' }} />
           <Stack.Screen name="new-task" options={{ title: 'New Task', presentation: 'modal' }} />
           <Stack.Screen
@@ -51,7 +52,6 @@ export default function RootLayout() {
             options={{ title: 'Edit Time', presentation: 'modal' }}
           />
           <Stack.Screen name="menu" options={{ title: 'Menu', presentation: 'modal' }} />
-          <Stack.Screen name="today" options={{ title: 'Today' }} />
         </Stack>
         <StatusBar style="auto" />
       </SQLiteProvider>
