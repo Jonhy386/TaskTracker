@@ -4,7 +4,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatDateTimeDMY } from '../lib/format';
-import { getSessionById, updateSessionTimes } from '../lib/queries';
+import { deleteSession, getSessionById, updateSessionTimes } from '../lib/queries';
 import { useThemeColors, type ThemeColors } from '../lib/theme';
 
 export default function EditSessionScreen() {
@@ -35,6 +35,24 @@ export default function EditSessionScreen() {
     }
     await updateSessionTimes(db, sessionId, startTime.toISOString(), endTime.toISOString());
     router.back();
+  }
+
+  function handleDelete() {
+    Alert.alert(
+      'Delete this time entry?',
+      'This removes it entirely and updates the task total (if any).',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteSession(db, sessionId);
+            router.back();
+          },
+        },
+      ]
+    );
   }
 
   if (!loaded) {
@@ -81,6 +99,10 @@ export default function EditSessionScreen() {
       <Pressable style={styles.saveButton} onPress={handleSave}>
         <Text style={styles.saveButtonText}>Save</Text>
       </Pressable>
+
+      <Pressable style={styles.deleteButton} onPress={handleDelete}>
+        <Text style={styles.deleteButtonText}>Delete Entry</Text>
+      </Pressable>
     </View>
   );
 }
@@ -106,5 +128,7 @@ function createStyles(c: ThemeColors) {
       alignItems: 'center',
     },
     saveButtonText: { color: c.accentText, fontWeight: '600', fontSize: 16 },
+    deleteButton: { marginTop: 16, alignItems: 'center', paddingVertical: 8 },
+    deleteButtonText: { color: c.danger, fontWeight: '600', fontSize: 14 },
   });
 }

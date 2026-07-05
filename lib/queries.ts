@@ -285,6 +285,14 @@ export async function getSessionById(
   return db.getFirstAsync<TimeSession>('SELECT * FROM time_sessions WHERE id = ?', id);
 }
 
+export async function deleteSession(db: SQLiteDatabase, id: string): Promise<void> {
+  const session = await getSessionById(db, id);
+  await db.runAsync('DELETE FROM time_sessions WHERE id = ?', id);
+  if (session?.task_id) {
+    await recomputeTotalTime(db, session.task_id);
+  }
+}
+
 // Stopped, not-yet-assigned-to-a-task sessions — logged against a project directly.
 export async function listUncategorizedSessions(db: SQLiteDatabase): Promise<TimeSession[]> {
   return db.getAllAsync<TimeSession>(
