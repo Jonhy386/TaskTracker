@@ -53,25 +53,10 @@ export default function TaskListScreen() {
     <View style={styles.container}>
       <Stack.Screen
         options={{
-          headerLeft: () => (
-            <View style={styles.headerButtons}>
-              <Pressable onPress={() => router.push('/calendar')} hitSlop={8}>
-                <Text style={styles.headerButtonText}>📅</Text>
-              </Pressable>
-              <Pressable onPress={() => router.push('/reports')} hitSlop={8}>
-                <Text style={styles.headerButtonText}>📊</Text>
-              </Pressable>
-            </View>
-          ),
           headerRight: () => (
-            <View style={styles.headerButtons}>
-              <Pressable onPress={() => router.push('/needs-review')} hitSlop={8}>
-                <Text style={styles.headerButtonText}>📋</Text>
-              </Pressable>
-              <Pressable onPress={() => router.push('/settings')} hitSlop={8}>
-                <Text style={styles.headerButtonText}>⚙️</Text>
-              </Pressable>
-            </View>
+            <Pressable onPress={() => router.push('/menu')} hitSlop={8}>
+              <Text style={styles.hamburgerText}>☰</Text>
+            </Pressable>
           ),
         }}
       />
@@ -145,7 +130,7 @@ export default function TaskListScreen() {
         <Pressable style={styles.fab} onPress={() => router.push('/new-task')}>
           <Text style={styles.fabTextBold}>＋</Text>
         </Pressable>
-        <Pressable style={styles.fab} onPress={() => router.push('/new-task-ai')}>
+        <Pressable style={styles.fab} onPress={() => router.push('/capture')}>
           <Text style={styles.fabText}>🎤</Text>
         </Pressable>
       </View>
@@ -194,9 +179,7 @@ function StatusBadge({ status }: { status: TaskStatus }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  headerButtons: { flexDirection: 'row', gap: 16, paddingHorizontal: 8 },
-  headerButtonText: { fontSize: 18 },
-  headerButtonTextBold: { fontSize: 22, fontWeight: '600' },
+  hamburgerText: { fontSize: 22, paddingHorizontal: 8 },
   fabRow: {
     position: 'absolute',
     left: 24,

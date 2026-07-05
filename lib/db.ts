@@ -10,7 +10,7 @@ const DEFAULT_PROJECTS = [
 ];
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
-  const DATABASE_VERSION = 2;
+  const DATABASE_VERSION = 3;
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
   let currentVersion = row?.user_version ?? 0;
   if (currentVersion >= DATABASE_VERSION) {
@@ -78,6 +78,18 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
   if (currentVersion === 1) {
     await db.execAsync(`ALTER TABLE pending_captures ADD COLUMN audio_uri TEXT;`);
     currentVersion = 2;
+  }
+
+  if (currentVersion === 2) {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS ideas (
+        id TEXT PRIMARY KEY NOT NULL,
+        title TEXT NOT NULL,
+        body TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+    `);
+    currentVersion = 3;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

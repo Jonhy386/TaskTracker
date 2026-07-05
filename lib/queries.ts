@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { generateId } from './id';
 import type {
+  Idea,
   PendingCapture,
   PendingCaptureFailureReason,
   Project,
@@ -285,4 +286,23 @@ export async function listPendingCaptures(
 
 export async function resolvePendingCapture(db: SQLiteDatabase, id: string): Promise<void> {
   await db.runAsync('UPDATE pending_captures SET resolved = 1 WHERE id = ?', id);
+}
+
+// --- Ideas ---
+
+export async function createIdea(db: SQLiteDatabase, title: string, body: string): Promise<Idea> {
+  const id = generateId();
+  const now = new Date().toISOString();
+  await db.runAsync(
+    'INSERT INTO ideas (id, title, body, created_at) VALUES (?, ?, ?, ?)',
+    id,
+    title,
+    body,
+    now
+  );
+  return { id, title, body, created_at: now };
+}
+
+export async function listIdeas(db: SQLiteDatabase): Promise<Idea[]> {
+  return db.getAllAsync<Idea>('SELECT * FROM ideas ORDER BY created_at DESC');
 }

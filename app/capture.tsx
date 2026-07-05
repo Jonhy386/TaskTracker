@@ -21,9 +21,15 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { ParseError, ParsedTask, parseTaskAudio, parseTaskText } from '../lib/ai';
+import { ParseError, ParsedCapture, parseCaptureAudio, parseCaptureText } from '../lib/ai';
 import { generateId } from '../lib/id';
-import { createPendingCapture, createTask, listProjects, resolvePendingCapture } from '../lib/queries';
+import {
+  createIdea,
+  createPendingCapture,
+  createTask,
+  listProjects,
+  resolvePendingCapture,
+} from '../lib/queries';
 import { getApiKey } from '../lib/secure';
 import type { Project } from '../lib/types';
 
@@ -43,7 +49,7 @@ async function discardAudio(uri: string | null) {
   await FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => {});
 }
 
-export default function NewTaskAiScreen() {
+export default function CaptureScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
   const { prefillText, prefillAudioUri, pendingCaptureId } = useLocalSearchParams<{
@@ -78,8 +84,8 @@ export default function NewTaskAiScreen() {
     }
     setStep('parsing');
     try {
-      const parsed = await parseTaskAudio(apiKey, audioUri, projects);
-      await saveParsedTask(parsed, audioUri);
+      const parsed = await parseCaptureAudio(apiKey, audioUri, projects);
+      await saveParsedCapture(parsed, audioUri);
     } catch (err) {
       await handleParseFailure(err, '', audioUri);
     }
@@ -130,14 +136,24 @@ export default function NewTaskAiScreen() {
     }
     setStep('parsing');
     try {
-      const parsed = await parseTaskText(apiKey, rawText.trim(), projects);
-      await saveParsedTask(parsed, null);
+      const parsed = await parseCaptureText(apiKey, rawText.trim(), projects);
+      await saveParsedCapture(parsed, null);
     } catch (err) {
       await handleParseFailure(err, rawText.trim(), null);
     }
   }
 
-  async function saveParsedTask(parsed: ParsedTask, audioUri: string | null) {
+  async function saveParsedCapture(parsed: ParsedCapture, audioUri: string | null) {
+    if (parsed.type === 'idea') {
+      await createIdea(db, parsed.title, parsed.body);
+      if (pendingCaptureId) {
+        await resolvePendingCapture(db, pendingCaptureId);
+      }
+      await discardAudio(audioUri);
+      router.back();
+      return;
+    }
+
     const finalProjectId = parsed.project_id ?? projects[0]?.id ?? null;
     if (!finalProjectId) {
       setStep('idle');
@@ -193,7 +209,7 @@ export default function NewTaskAiScreen() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" />
-        <Text style={styles.hint}>Parsing and creating your task…</Text>
+        <Text style={styles.hint}>Figuring out if that's a task or an idea…</Text>
       </View>
     );
   }
@@ -231,9 +247,9 @@ export default function NewTaskAiScreen() {
         {mode === 'voice' ? (
           <View style={styles.recordSection}>
             <Text style={styles.hint}>
-              Press the mic, say your task, press it again to send — it's created immediately, no
-              review step. Today's date and your open projects are sent along so relative dates
-              and project names resolve correctly.
+              Press the mic and say a task or an idea — Gemini figures out which it is and saves
+              it immediately, no review step. Today's date and your open projects are sent along
+              so relative dates and project names resolve correctly.
             </Text>
             <Pressable
               style={[styles.micButton, step === 'recording' && styles.micButtonRecording]}
@@ -253,7 +269,7 @@ export default function NewTaskAiScreen() {
               style={[styles.input, styles.multiline]}
               value={rawText}
               onChangeText={setRawText}
-              placeholder="e.g. remind me to review the Lactogal OEE report by Friday"
+              placeholder="e.g. remind me to review the Lactogal OEE report by Friday — or just an idea you want to remember"
               multiline
               autoFocus
             />
@@ -262,7 +278,7 @@ export default function NewTaskAiScreen() {
               onPress={handleParseText}
               disabled={!rawText.trim()}
             >
-              <Text style={styles.saveButtonText}>Parse & Create</Text>
+              <Text style={styles.saveButtonText}>Parse & Save</Text>
             </Pressable>
           </>
         )}

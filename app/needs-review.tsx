@@ -30,7 +30,7 @@ export default function NeedsReviewScreen() {
 
   function handleRetry(capture: PendingCapture) {
     router.push({
-      pathname: '/new-task-ai',
+      pathname: '/capture',
       params: capture.audio_uri
         ? {
             prefillAudioUri: encodeURIComponent(capture.audio_uri),

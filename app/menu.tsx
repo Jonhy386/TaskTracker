@@ -1,0 +1,47 @@
+import { useRouter } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+const ITEMS: { label: string; icon: string; route: '/calendar' | '/reports' | '/ideas' | '/needs-review' | '/settings' }[] = [
+  { label: 'Calendar', icon: '📅', route: '/calendar' },
+  { label: 'Time Report', icon: '📊', route: '/reports' },
+  { label: 'Ideas', icon: '💡', route: '/ideas' },
+  { label: 'Needs Review', icon: '📋', route: '/needs-review' },
+  { label: 'Settings', icon: '⚙️', route: '/settings' },
+];
+
+export default function MenuScreen() {
+  const router = useRouter();
+
+  return (
+    <View style={styles.container}>
+      {ITEMS.map((item) => (
+        <Pressable
+          key={item.route}
+          style={styles.row}
+          onPress={() => {
+            router.back();
+            router.push(item.route);
+          }}
+        >
+          <Text style={styles.icon}>{item.icon}</Text>
+          <Text style={styles.label}>{item.label}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#fff', paddingTop: 8 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EEE',
+    gap: 16,
+  },
+  icon: { fontSize: 20 },
+  label: { fontSize: 16, fontWeight: '500' },
+});

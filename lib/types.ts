@@ -38,9 +38,9 @@ export interface PendingCapture {
   resolved: number;
 }
 
-export interface ParsedTaskFields {
+export interface Idea {
+  id: string;
   title: string;
-  description: string | null;
-  due_date: string | null;
-  project_id: string | null;
+  body: string;
+  created_at: string;
 }

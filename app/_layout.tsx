@@ -20,13 +20,15 @@ export default function RootLayout() {
           <Stack.Screen name="task/[id]" options={{ title: 'Task' }} />
           <Stack.Screen name="new-task" options={{ title: 'New Task', presentation: 'modal' }} />
           <Stack.Screen
-            name="new-task-ai"
+            name="capture"
             options={{ title: 'Quick Add', presentation: 'modal' }}
           />
           <Stack.Screen name="needs-review" options={{ title: 'Needs Review' }} />
           <Stack.Screen name="settings" options={{ title: 'Settings' }} />
           <Stack.Screen name="reports" options={{ title: 'Time Report' }} />
           <Stack.Screen name="calendar" options={{ title: 'Calendar' }} />
+          <Stack.Screen name="ideas" options={{ title: 'Ideas' }} />
+          <Stack.Screen name="menu" options={{ title: 'Menu', presentation: 'modal' }} />
         </Stack>
         <StatusBar style="auto" />
       </SQLiteProvider>
