@@ -1,15 +1,18 @@
 import { Picker } from '@react-native-picker/picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatDateTimeDMY, formatDuration, formatTimeOnly } from '../lib/format';
 import { assignSessionToTask, getSessionById, listTasks } from '../lib/queries';
+import { useThemeColors, type ThemeColors } from '../lib/theme';
 import type { Task, TimeSession } from '../lib/types';
 
 export default function CategorizeSessionScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
+  const c = useThemeColors();
+  const styles = useMemo(() => createStyles(c), [c]);
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const [session, setSession] = useState<TimeSession | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -36,7 +39,7 @@ export default function CategorizeSessionScreen() {
   if (!session) {
     return (
       <View style={styles.container}>
-        <Text>Loading…</Text>
+        <Text style={{ color: c.text }}>Loading…</Text>
       </View>
     );
   }
@@ -73,19 +76,21 @@ export default function CategorizeSessionScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 16 },
-  hint: { fontSize: 13, color: '#666', marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 6 },
-  warning: { color: '#B45309', fontSize: 14 },
-  pickerWrap: { borderWidth: 1, borderColor: '#DDD', borderRadius: 8 },
-  saveButton: {
-    marginTop: 24,
-    backgroundColor: '#111',
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  saveButtonDisabled: { opacity: 0.5 },
-  saveButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-});
+function createStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background, padding: 16 },
+    hint: { fontSize: 13, color: c.textSecondary, marginBottom: 16 },
+    label: { fontSize: 13, fontWeight: '600', color: c.textSecondary, marginBottom: 6 },
+    warning: { color: c.warning, fontSize: 14 },
+    pickerWrap: { borderWidth: 1, borderColor: c.border, borderRadius: 8 },
+    saveButton: {
+      marginTop: 24,
+      backgroundColor: c.accent,
+      borderRadius: 10,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    saveButtonDisabled: { opacity: 0.5 },
+    saveButtonText: { color: c.accentText, fontWeight: '600', fontSize: 16 },
+  });
+}

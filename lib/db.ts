@@ -10,7 +10,7 @@ const DEFAULT_PROJECTS = [
 ];
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
-  const DATABASE_VERSION = 4;
+  const DATABASE_VERSION = 5;
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
   let currentVersion = row?.user_version ?? 0;
   if (currentVersion >= DATABASE_VERSION) {
@@ -122,6 +122,11 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
       CREATE INDEX IF NOT EXISTS idx_sessions_project ON time_sessions(project_id);
     `);
     currentVersion = 4;
+  }
+
+  if (currentVersion === 4) {
+    await db.execAsync(`ALTER TABLE ideas ADD COLUMN project_id TEXT;`);
+    currentVersion = 5;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

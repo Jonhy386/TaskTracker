@@ -34,6 +34,18 @@ export async function createProject(
   return { id, name, color, is_closed: 0 };
 }
 
+export async function updateProject(
+  db: SQLiteDatabase,
+  id: string,
+  fields: Partial<Pick<Project, 'name' | 'color'>>
+): Promise<void> {
+  const entries = Object.entries(fields).filter(([, v]) => v !== undefined);
+  if (entries.length === 0) return;
+  const setClause = entries.map(([k]) => `${k} = ?`).join(', ');
+  const values = entries.map(([, v]) => v as string);
+  await db.runAsync(`UPDATE projects SET ${setClause} WHERE id = ?`, ...values, id);
+}
+
 export async function closeProject(db: SQLiteDatabase, projectId: string): Promise<void> {
   await db.withTransactionAsync(async () => {
     await db.runAsync('UPDATE projects SET is_closed = 1 WHERE id = ?', projectId);
@@ -49,7 +61,7 @@ export async function closeProject(db: SQLiteDatabase, projectId: string): Promi
 
 export async function listTasks(
   db: SQLiteDatabase,
-  filters: { projectId?: string; status?: TaskStatus } = {}
+  filters: { projectId?: string; status?: TaskStatus; search?: string } = {}
 ): Promise<Task[]> {
   const clauses: string[] = [];
   const params: string[] = [];
@@ -60,6 +72,10 @@ export async function listTasks(
   if (filters.status) {
     clauses.push('status = ?');
     params.push(filters.status);
+  }
+  if (filters.search?.trim()) {
+    clauses.push('LOWER(title) LIKE ?');
+    params.push(`%${filters.search.trim().toLowerCase()}%`);
   }
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   return db.getAllAsync<Task>(
@@ -348,6 +364,30 @@ export async function getTaskTimeForDay(
   );
 }
 
+export interface DayTotal {
+  day: string;
+  total_seconds: number;
+}
+
+// Inclusive range of local calendar date strings, YYYY-MM-DD
+export async function getTotalsForDateRange(
+  db: SQLiteDatabase,
+  startDay: string,
+  endDay: string
+): Promise<DayTotal[]> {
+  return db.getAllAsync<DayTotal>(
+    `
+    SELECT date(start_time, 'localtime') as day, SUM(duration_seconds) as total_seconds
+    FROM time_sessions
+    WHERE duration_seconds IS NOT NULL
+      AND date(start_time, 'localtime') BETWEEN ? AND ?
+    GROUP BY day
+  `,
+    startDay,
+    endDay
+  );
+}
+
 // --- Pending captures ---
 
 export async function createPendingCapture(
@@ -394,21 +434,35 @@ export async function resolvePendingCapture(db: SQLiteDatabase, id: string): Pro
 
 // --- Ideas ---
 
-export async function createIdea(db: SQLiteDatabase, title: string, body: string): Promise<Idea> {
+export async function createIdea(
+  db: SQLiteDatabase,
+  title: string,
+  body: string,
+  projectId: string | null = null
+): Promise<Idea> {
   const id = generateId();
   const now = new Date().toISOString();
   await db.runAsync(
-    'INSERT INTO ideas (id, title, body, created_at) VALUES (?, ?, ?, ?)',
+    'INSERT INTO ideas (id, title, body, project_id, created_at) VALUES (?, ?, ?, ?, ?)',
     id,
     title,
     body,
+    projectId,
     now
   );
-  return { id, title, body, created_at: now };
+  return { id, title, body, project_id: projectId, created_at: now };
 }
 
 export async function listIdeas(db: SQLiteDatabase): Promise<Idea[]> {
   return db.getAllAsync<Idea>('SELECT * FROM ideas ORDER BY created_at DESC');
+}
+
+export async function setIdeaProject(
+  db: SQLiteDatabase,
+  ideaId: string,
+  projectId: string | null
+): Promise<void> {
+  await db.runAsync('UPDATE ideas SET project_id = ? WHERE id = ?', projectId, ideaId);
 }
 
 export async function deleteIdea(db: SQLiteDatabase, id: string): Promise<void> {

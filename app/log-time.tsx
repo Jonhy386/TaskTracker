@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ElapsedTime } from '../components/ElapsedTime';
 import { formatDateTimeDMY, formatDuration, formatTimeOnly } from '../lib/format';
@@ -11,11 +11,14 @@ import {
   startProjectTimer,
   stopTimer,
 } from '../lib/queries';
+import { useThemeColors, type ThemeColors } from '../lib/theme';
 import type { Project, TimeSession } from '../lib/types';
 
 export default function LogTimeScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
+  const c = useThemeColors();
+  const styles = useMemo(() => createStyles(c), [c]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [running, setRunning] = useState<TimeSession | null>(null);
   const [uncategorized, setUncategorized] = useState<TimeSession[]>([]);
@@ -138,50 +141,74 @@ export default function LogTimeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  runningBanner: {
-    margin: 16,
-    marginBottom: 0,
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: '#FEF3C7',
-  },
-  runningBannerText: { fontSize: 13, color: '#92400E' },
-  runningRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
-  runningTime: { fontSize: 16, fontWeight: '700', color: '#92400E' },
-  stopButton: { backgroundColor: '#DC2626', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 6 },
-  stopButtonText: { color: '#fff', fontWeight: '600', fontSize: 13 },
-  sectionTitle: { fontSize: 15, fontWeight: '600', marginHorizontal: 16, marginTop: 20, marginBottom: 8 },
-  projectList: { paddingHorizontal: 16 },
-  projectRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: '#F8F8F8',
-    marginBottom: 8,
-    gap: 10,
-  },
-  colorDot: { width: 10, height: 10, borderRadius: 5 },
-  projectName: { flex: 1, fontSize: 15, fontWeight: '600' },
-  startButton: { backgroundColor: '#111', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 6 },
-  startButtonText: { color: '#fff', fontWeight: '600', fontSize: 13 },
-  list: { flex: 1 },
-  listContent: { paddingHorizontal: 16, paddingBottom: 24 },
-  emptyText: { textAlign: 'center', marginTop: 12, color: '#999' },
-  uncategorizedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: '#F8F8F8',
-    marginBottom: 8,
-    gap: 10,
-  },
-  uncategorizedInfo: { flex: 1 },
-  sessionMeta: { fontSize: 12, color: '#666', marginTop: 2 },
-  actionsColumn: { alignItems: 'flex-end', gap: 8 },
-  actionText: { color: '#111', fontSize: 13 },
-  categorizeText: { color: '#4F46E5', fontSize: 13, fontWeight: '600' },
-});
+function createStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    runningBanner: {
+      margin: 16,
+      marginBottom: 0,
+      padding: 12,
+      borderRadius: 10,
+      backgroundColor: c.warningBg,
+    },
+    runningBannerText: { fontSize: 13, color: c.warning },
+    runningRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 8,
+    },
+    runningTime: { fontSize: 16, fontWeight: '700', color: c.warning },
+    stopButton: {
+      backgroundColor: c.danger,
+      borderRadius: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 6,
+    },
+    stopButtonText: { color: '#fff', fontWeight: '600', fontSize: 13 },
+    sectionTitle: {
+      fontSize: 15,
+      fontWeight: '600',
+      marginHorizontal: 16,
+      marginTop: 20,
+      marginBottom: 8,
+      color: c.text,
+    },
+    projectList: { paddingHorizontal: 16 },
+    projectRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 12,
+      borderRadius: 10,
+      backgroundColor: c.surface,
+      marginBottom: 8,
+      gap: 10,
+    },
+    colorDot: { width: 10, height: 10, borderRadius: 5 },
+    projectName: { flex: 1, fontSize: 15, fontWeight: '600', color: c.text },
+    startButton: {
+      backgroundColor: c.accent,
+      borderRadius: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 6,
+    },
+    startButtonText: { color: c.accentText, fontWeight: '600', fontSize: 13 },
+    list: { flex: 1 },
+    listContent: { paddingHorizontal: 16, paddingBottom: 24 },
+    emptyText: { textAlign: 'center', marginTop: 12, color: c.textMuted },
+    uncategorizedRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 12,
+      borderRadius: 10,
+      backgroundColor: c.surface,
+      marginBottom: 8,
+      gap: 10,
+    },
+    uncategorizedInfo: { flex: 1 },
+    sessionMeta: { fontSize: 12, color: c.textSecondary, marginTop: 2 },
+    actionsColumn: { alignItems: 'flex-end', gap: 8 },
+    actionText: { color: c.text, fontSize: 13 },
+    categorizeText: { color: c.link, fontSize: 13, fontWeight: '600' },
+  });
+}

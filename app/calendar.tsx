@@ -1,9 +1,10 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatDueDate } from '../lib/format';
 import { listPendingTasksWithDueDate, listProjects } from '../lib/queries';
+import { useThemeColors, type ThemeColors } from '../lib/theme';
 import type { Project, Task } from '../lib/types';
 
 const MONTH_NAMES = [
@@ -31,6 +32,8 @@ function getMonthGridDays(year: number, month: number): (number | null)[] {
 export default function CalendarScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
+  const c = useThemeColors();
+  const styles = useMemo(() => createStyles(c), [c]);
   const today = new Date();
   const [viewedYear, setViewedYear] = useState(today.getFullYear());
   const [viewedMonth, setViewedMonth] = useState(today.getMonth());
@@ -152,73 +155,76 @@ export default function CalendarScreen() {
 
 const CELL_SIZE = `${100 / 7}%` as const;
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  monthNav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 24,
-    paddingTop: 16,
-  },
-  navButton: { paddingHorizontal: 12, paddingVertical: 8 },
-  navButtonText: { fontSize: 16, color: '#111' },
-  monthTitle: { fontSize: 16, fontWeight: '700', minWidth: 140, textAlign: 'center' },
-  weekdayRow: { flexDirection: 'row', paddingHorizontal: 8, marginTop: 12 },
-  weekdayLabel: {
-    width: CELL_SIZE,
-    textAlign: 'center',
-    fontSize: 12,
-    color: '#999',
-    fontWeight: '600',
-  },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 8 },
-  cell: {
-    width: CELL_SIZE,
-    aspectRatio: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dayCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dayCircleSelected: { backgroundColor: '#111' },
-  dayCircleToday: { borderWidth: 1, borderColor: '#111' },
-  dayText: { fontSize: 14, color: '#111' },
-  dayTextSelected: { color: '#fff', fontWeight: '600' },
-  dot: {
-    position: 'absolute',
-    bottom: 2,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#DC2626',
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginTop: 20,
-    marginBottom: 8,
-    paddingHorizontal: 16,
-  },
-  list: { flex: 1 },
-  listContent: { paddingHorizontal: 16, paddingBottom: 24 },
-  emptyText: { textAlign: 'center', marginTop: 24, color: '#999' },
-  taskRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: '#F8F8F8',
-    marginBottom: 8,
-    gap: 10,
-  },
-  colorDot: { width: 10, height: 10, borderRadius: 5 },
-  taskInfo: { flex: 1 },
-  taskTitle: { fontSize: 15, fontWeight: '600' },
-  taskMeta: { fontSize: 13, color: '#666', marginTop: 2 },
-});
+function createStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    monthNav: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 24,
+      paddingTop: 16,
+    },
+    navButton: { paddingHorizontal: 12, paddingVertical: 8 },
+    navButtonText: { fontSize: 16, color: c.text },
+    monthTitle: { fontSize: 16, fontWeight: '700', minWidth: 140, textAlign: 'center', color: c.text },
+    weekdayRow: { flexDirection: 'row', paddingHorizontal: 8, marginTop: 12 },
+    weekdayLabel: {
+      width: CELL_SIZE,
+      textAlign: 'center',
+      fontSize: 12,
+      color: c.textMuted,
+      fontWeight: '600',
+    },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 8 },
+    cell: {
+      width: CELL_SIZE,
+      aspectRatio: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dayCircle: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dayCircleSelected: { backgroundColor: c.accent },
+    dayCircleToday: { borderWidth: 1, borderColor: c.accent },
+    dayText: { fontSize: 14, color: c.text },
+    dayTextSelected: { color: c.accentText, fontWeight: '600' },
+    dot: {
+      position: 'absolute',
+      bottom: 2,
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: c.danger,
+    },
+    sectionTitle: {
+      fontSize: 15,
+      fontWeight: '600',
+      marginTop: 20,
+      marginBottom: 8,
+      paddingHorizontal: 16,
+      color: c.text,
+    },
+    list: { flex: 1 },
+    listContent: { paddingHorizontal: 16, paddingBottom: 24 },
+    emptyText: { textAlign: 'center', marginTop: 24, color: c.textMuted },
+    taskRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 12,
+      borderRadius: 10,
+      backgroundColor: c.surface,
+      marginBottom: 8,
+      gap: 10,
+    },
+    colorDot: { width: 10, height: 10, borderRadius: 5 },
+    taskInfo: { flex: 1 },
+    taskTitle: { fontSize: 15, fontWeight: '600', color: c.text },
+    taskMeta: { fontSize: 13, color: c.textSecondary, marginTop: 2 },
+  });
+}

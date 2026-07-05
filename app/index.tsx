@@ -1,12 +1,13 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Stack } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ElapsedTime } from '../components/ElapsedTime';
 import { formatDuration, formatDueDate } from '../lib/format';
 import { getRunningSession, listProjects, listTasks, stopTimer } from '../lib/queries';
+import { useThemeColors, type ThemeColors } from '../lib/theme';
 import type { Project, Task, TaskStatus, TimeSession } from '../lib/types';
 
 const STATUS_FILTERS: { label: string; value: TaskStatus | null }[] = [
@@ -21,17 +22,21 @@ export default function TaskListScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const c = useThemeColors();
+  const styles = useMemo(() => createStyles(c), [c]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [running, setRunning] = useState<TimeSession | null>(null);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<TaskStatus | null>(null);
+  const [search, setSearch] = useState('');
 
   const reload = useCallback(async () => {
     const [taskRows, projectRows, runningSession] = await Promise.all([
       listTasks(db, {
         projectId: projectFilter ?? undefined,
         status: statusFilter ?? undefined,
+        search: search || undefined,
       }),
       listProjects(db),
       getRunningSession(db),
@@ -39,7 +44,7 @@ export default function TaskListScreen() {
     setTasks(taskRows);
     setProjects(projectRows);
     setRunning(runningSession);
-  }, [db, projectFilter, statusFilter]);
+  }, [db, projectFilter, statusFilter, search]);
 
   useFocusEffect(
     useCallback(() => {
@@ -80,6 +85,15 @@ export default function TaskListScreen() {
           </Pressable>
         </View>
       )}
+
+      <TextInput
+        style={styles.searchInput}
+        value={search}
+        onChangeText={setSearch}
+        placeholder="🔍 Search tasks"
+        placeholderTextColor={c.textMuted}
+        clearButtonMode="while-editing"
+      />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow}>
         <FilterChip
@@ -169,6 +183,8 @@ function FilterChip({
   color?: string;
   onPress: () => void;
 }) {
+  const c = useThemeColors();
+  const styles = useMemo(() => createStyles(c), [c]);
   return (
     <Pressable
       onPress={onPress}
@@ -184,6 +200,8 @@ function FilterChip({
 }
 
 function StatusBadge({ status }: { status: TaskStatus }) {
+  const c = useThemeColors();
+  const styles = useMemo(() => createStyles(c), [c]);
   const labels: Record<TaskStatus, string> = {
     not_started: 'Not started',
     in_progress: 'In progress',
@@ -197,79 +215,97 @@ function StatusBadge({ status }: { status: TaskStatus }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  hamburgerText: { fontSize: 22, paddingHorizontal: 8 },
-  projectTimerBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginHorizontal: 12,
-    marginTop: 8,
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: '#FEF3C7',
-  },
-  projectTimerInfo: { flexDirection: 'row', flex: 1 },
-  projectTimerText: { fontSize: 14, fontWeight: '600', color: '#92400E' },
-  projectTimerStop: { backgroundColor: '#DC2626', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 6 },
-  projectTimerStopText: { color: '#fff', fontWeight: '600', fontSize: 13 },
-  fabRow: {
-    position: 'absolute',
-    left: 24,
-    right: 24,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  fab: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#111',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  fabText: { fontSize: 24 },
-  fabTextBold: { fontSize: 28, fontWeight: '600', color: '#fff' },
-  filterRow: { flexGrow: 0, paddingHorizontal: 12, paddingTop: 8 },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#F1F1F1',
-    marginRight: 8,
-  },
-  chipActive: { backgroundColor: '#111' },
-  chipText: { fontSize: 13, color: '#333' },
-  chipTextActive: { color: '#fff', fontWeight: '600' },
-  listContent: { padding: 12, gap: 8 },
-  emptyText: { textAlign: 'center', marginTop: 40, color: '#999' },
-  taskRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: '#F8F8F8',
-    marginBottom: 8,
-    gap: 10,
-  },
-  colorDot: { width: 10, height: 10, borderRadius: 5 },
-  taskInfo: { flex: 1 },
-  taskTitle: { fontSize: 16, fontWeight: '600' },
-  taskMeta: { fontSize: 13, color: '#666', marginTop: 2 },
-  runningBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  runningDot: { color: '#E11D48', fontSize: 10 },
-  runningText: { fontSize: 13, fontWeight: '600', color: '#E11D48' },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: '#EEE',
-  },
-  statusBadgeText: { fontSize: 11, color: '#555' },
-});
+function createStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    hamburgerText: { fontSize: 22, paddingHorizontal: 8, color: c.text },
+    projectTimerBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginHorizontal: 12,
+      marginTop: 8,
+      padding: 12,
+      borderRadius: 10,
+      backgroundColor: c.warningBg,
+    },
+    projectTimerInfo: { flexDirection: 'row', flex: 1 },
+    projectTimerText: { fontSize: 14, fontWeight: '600', color: c.warning },
+    projectTimerStop: {
+      backgroundColor: c.danger,
+      borderRadius: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+    },
+    projectTimerStopText: { color: '#fff', fontWeight: '600', fontSize: 13 },
+    searchInput: {
+      marginHorizontal: 12,
+      marginTop: 8,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      fontSize: 14,
+      color: c.text,
+    },
+    fabRow: {
+      position: 'absolute',
+      left: 24,
+      right: 24,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    fab: {
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor: c.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 4,
+    },
+    fabText: { fontSize: 24 },
+    fabTextBold: { fontSize: 28, fontWeight: '600', color: c.accentText },
+    filterRow: { flexGrow: 0, paddingHorizontal: 12, paddingTop: 8 },
+    chip: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      backgroundColor: c.surfaceAlt,
+      marginRight: 8,
+    },
+    chipActive: { backgroundColor: c.accent },
+    chipText: { fontSize: 13, color: c.text },
+    chipTextActive: { color: c.accentText, fontWeight: '600' },
+    listContent: { padding: 12, gap: 8 },
+    emptyText: { textAlign: 'center', marginTop: 40, color: c.textMuted },
+    taskRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 12,
+      borderRadius: 10,
+      backgroundColor: c.surface,
+      marginBottom: 8,
+      gap: 10,
+    },
+    colorDot: { width: 10, height: 10, borderRadius: 5 },
+    taskInfo: { flex: 1 },
+    taskTitle: { fontSize: 16, fontWeight: '600', color: c.text },
+    taskMeta: { fontSize: 13, color: c.textSecondary, marginTop: 2 },
+    runningBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    runningDot: { color: '#E11D48', fontSize: 10 },
+    runningText: { fontSize: 13, fontWeight: '600', color: '#E11D48' },
+    statusBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 8,
+      backgroundColor: c.surfaceAlt,
+    },
+    statusBadgeText: { fontSize: 11, color: c.textSecondary },
+  });
+}

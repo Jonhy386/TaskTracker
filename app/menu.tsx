@@ -1,5 +1,7 @@
 import { useRouter } from 'expo-router';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useThemeColors, type ThemeColors } from '../lib/theme';
 
 const ITEMS: {
   label: string;
@@ -16,6 +18,8 @@ const ITEMS: {
 
 export default function MenuScreen() {
   const router = useRouter();
+  const c = useThemeColors();
+  const styles = useMemo(() => createStyles(c), [c]);
 
   return (
     <View style={styles.container}>
@@ -36,17 +40,19 @@ export default function MenuScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', paddingTop: 8 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EEE',
-    gap: 16,
-  },
-  icon: { fontSize: 20 },
-  label: { fontSize: 16, fontWeight: '500' },
-});
+function createStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background, paddingTop: 8 },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+      gap: 16,
+    },
+    icon: { fontSize: 20 },
+    label: { fontSize: 16, fontWeight: '500', color: c.text },
+  });
+}

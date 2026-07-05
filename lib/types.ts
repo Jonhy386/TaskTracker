@@ -43,5 +43,6 @@ export interface Idea {
   id: string;
   title: string;
   body: string;
+  project_id: string | null;
   created_at: string;
 }

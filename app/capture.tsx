@@ -8,7 +8,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -31,6 +31,7 @@ import {
   resolvePendingCapture,
 } from '../lib/queries';
 import { getApiKey } from '../lib/secure';
+import { useThemeColors, type ThemeColors } from '../lib/theme';
 import type { Project } from '../lib/types';
 
 type Step = 'idle' | 'recording' | 'parsing';
@@ -52,6 +53,8 @@ async function discardAudio(uri: string | null) {
 export default function CaptureScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
+  const c = useThemeColors();
+  const styles = useMemo(() => createStyles(c), [c]);
   const { prefillText, prefillAudioUri, pendingCaptureId } = useLocalSearchParams<{
     prefillText?: string;
     prefillAudioUri?: string;
@@ -145,7 +148,7 @@ export default function CaptureScreen() {
 
   async function saveParsedCapture(parsed: ParsedCapture, audioUri: string | null) {
     if (parsed.type === 'idea') {
-      await createIdea(db, parsed.title, parsed.body);
+      await createIdea(db, parsed.title, parsed.body, parsed.project_id);
       if (pendingCaptureId) {
         await resolvePendingCapture(db, pendingCaptureId);
       }
@@ -270,6 +273,7 @@ export default function CaptureScreen() {
               value={rawText}
               onChangeText={setRawText}
               placeholder="e.g. remind me to review the Lactogal OEE report by Friday — or just an idea you want to remember"
+              placeholderTextColor={c.textMuted}
               multiline
               autoFocus
             />
@@ -287,52 +291,55 @@ export default function CaptureScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#fff' },
-  container: { flex: 1, backgroundColor: '#fff' },
-  scrollContent: { padding: 16, paddingBottom: 40 },
-  centerContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
-  hint: { fontSize: 13, color: '#666', marginBottom: 16, textAlign: 'center' },
-  warning: { color: '#B45309', fontSize: 14, marginBottom: 16 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-  },
-  multiline: { minHeight: 100, textAlignVertical: 'top' },
-  saveButton: {
-    marginTop: 24,
-    backgroundColor: '#111',
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  saveButtonDisabled: { opacity: 0.5 },
-  saveButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  modeToggleRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
-  modeButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: '#F1F1F1',
-    alignItems: 'center',
-  },
-  modeButtonActive: { backgroundColor: '#111' },
-  modeButtonText: { fontSize: 14, color: '#333' },
-  modeButtonTextActive: { color: '#fff', fontWeight: '600' },
-  recordSection: { alignItems: 'center', paddingVertical: 24 },
-  micButton: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: '#111',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  micButtonRecording: { backgroundColor: '#DC2626' },
-  micButtonText: { fontSize: 36 },
-  recordingStatus: { marginTop: 16, fontSize: 14, color: '#666' },
-});
+function createStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    flex: { flex: 1, backgroundColor: c.background },
+    container: { flex: 1, backgroundColor: c.background },
+    scrollContent: { padding: 16, paddingBottom: 40 },
+    centerContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
+    hint: { fontSize: 13, color: c.textSecondary, marginBottom: 16, textAlign: 'center' },
+    warning: { color: c.warning, fontSize: 14, marginBottom: 16 },
+    input: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 15,
+      color: c.text,
+    },
+    multiline: { minHeight: 100, textAlignVertical: 'top' },
+    saveButton: {
+      marginTop: 24,
+      backgroundColor: c.accent,
+      borderRadius: 10,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    saveButtonDisabled: { opacity: 0.5 },
+    saveButtonText: { color: c.accentText, fontWeight: '600', fontSize: 16 },
+    modeToggleRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
+    modeButton: {
+      flex: 1,
+      paddingVertical: 10,
+      borderRadius: 8,
+      backgroundColor: c.surfaceAlt,
+      alignItems: 'center',
+    },
+    modeButtonActive: { backgroundColor: c.accent },
+    modeButtonText: { fontSize: 14, color: c.text },
+    modeButtonTextActive: { color: c.accentText, fontWeight: '600' },
+    recordSection: { alignItems: 'center', paddingVertical: 24 },
+    micButton: {
+      width: 96,
+      height: 96,
+      borderRadius: 48,
+      backgroundColor: c.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    micButtonRecording: { backgroundColor: c.danger },
+    micButtonText: { fontSize: 36 },
+    recordingStatus: { marginTop: 16, fontSize: 14, color: c.textSecondary },
+  });
+}

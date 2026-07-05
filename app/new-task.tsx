@@ -1,8 +1,8 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -15,16 +15,27 @@ import {
   View,
 } from 'react-native';
 import { formatDateDMY } from '../lib/format';
-import { createTask, listProjects } from '../lib/queries';
+import { createTask, deleteIdea, listProjects } from '../lib/queries';
+import { useThemeColors, type ThemeColors } from '../lib/theme';
 import type { Project } from '../lib/types';
 
 export default function NewTaskScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
+  const c = useThemeColors();
+  const styles = useMemo(() => createStyles(c), [c]);
+  const { prefillTitle, prefillDescription, prefillProjectId, ideaId } = useLocalSearchParams<{
+    prefillTitle?: string;
+    prefillDescription?: string;
+    prefillProjectId?: string;
+    ideaId?: string;
+  }>();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [projectId, setProjectId] = useState<string | null>(null);
+  const [title, setTitle] = useState(prefillTitle ? decodeURIComponent(prefillTitle) : '');
+  const [description, setDescription] = useState(
+    prefillDescription ? decodeURIComponent(prefillDescription) : ''
+  );
+  const [projectId, setProjectId] = useState<string | null>(prefillProjectId || null);
   const [dueDate, setDueDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -32,8 +43,9 @@ export default function NewTaskScreen() {
   useEffect(() => {
     listProjects(db, false).then((rows) => {
       setProjects(rows);
-      if (rows.length > 0) setProjectId(rows[0].id);
+      if (!projectId && rows.length > 0) setProjectId(rows[0].id);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [db]);
 
   async function handleSave() {
@@ -53,6 +65,9 @@ export default function NewTaskScreen() {
         project_id: projectId,
         due_date: dueDate ? toDateString(dueDate) : null,
       });
+      if (ideaId) {
+        await deleteIdea(db, ideaId);
+      }
       router.back();
     } finally {
       setSaving(false);
@@ -76,6 +91,7 @@ export default function NewTaskScreen() {
         value={title}
         onChangeText={setTitle}
         placeholder="Review the OEE report"
+        placeholderTextColor={c.textMuted}
         autoFocus
       />
 
@@ -85,6 +101,7 @@ export default function NewTaskScreen() {
         value={description}
         onChangeText={setDescription}
         placeholder="Optional details"
+        placeholderTextColor={c.textMuted}
         multiline
       />
 
@@ -106,7 +123,9 @@ export default function NewTaskScreen() {
       <Text style={styles.label}>Due date</Text>
       <View style={styles.dueDateRow}>
         <Pressable style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
-          <Text>{dueDate ? formatDateDMY(toDateString(dueDate)) : 'No due date'}</Text>
+          <Text style={{ color: c.text }}>
+            {dueDate ? formatDateDMY(toDateString(dueDate)) : 'No due date'}
+          </Text>
         </Pressable>
         {dueDate && (
           <Pressable onPress={() => setDueDate(null)} hitSlop={8}>
@@ -145,38 +164,41 @@ function toDateString(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#fff' },
-  container: { flex: 1, backgroundColor: '#fff' },
-  scrollContent: { padding: 16, paddingBottom: 40 },
-  label: { fontSize: 13, fontWeight: '600', color: '#555', marginTop: 16, marginBottom: 6 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-  },
-  multiline: { minHeight: 80, textAlignVertical: 'top' },
-  pickerWrap: { borderWidth: 1, borderColor: '#DDD', borderRadius: 8 },
-  warning: { color: '#B45309', fontSize: 13 },
-  dueDateRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  dateButton: {
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  clearText: { color: '#DC2626', fontSize: 13 },
-  saveButton: {
-    marginTop: 32,
-    backgroundColor: '#111',
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  saveButtonDisabled: { opacity: 0.5 },
-  saveButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-});
+function createStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    flex: { flex: 1, backgroundColor: c.background },
+    container: { flex: 1, backgroundColor: c.background },
+    scrollContent: { padding: 16, paddingBottom: 40 },
+    label: { fontSize: 13, fontWeight: '600', color: c.textSecondary, marginTop: 16, marginBottom: 6 },
+    input: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 15,
+      color: c.text,
+    },
+    multiline: { minHeight: 80, textAlignVertical: 'top' },
+    pickerWrap: { borderWidth: 1, borderColor: c.border, borderRadius: 8 },
+    warning: { color: c.warning, fontSize: 13 },
+    dueDateRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+    dateButton: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    clearText: { color: c.danger, fontSize: 13 },
+    saveButton: {
+      marginTop: 32,
+      backgroundColor: c.accent,
+      borderRadius: 10,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    saveButtonDisabled: { opacity: 0.5 },
+    saveButtonText: { color: c.accentText, fontWeight: '600', fontSize: 16 },
+  });
+}

@@ -1,5 +1,5 @@
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import {
   Alert,
@@ -10,18 +10,24 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { closeProject, createProject, listProjects } from '../lib/queries';
+import { closeProject, createProject, listProjects, updateProject } from '../lib/queries';
 import { getApiKey, setApiKey } from '../lib/secure';
+import { useThemeColors, type ThemeColors } from '../lib/theme';
 import type { Project } from '../lib/types';
 
 const PALETTE = ['#4F46E5', '#059669', '#DC2626', '#D97706', '#7C3AED', '#0891B2', '#DB2777'];
 
 export default function SettingsScreen() {
   const db = useSQLiteContext();
+  const theme = useThemeColors();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [apiKey, setApiKeyState] = useState('');
   const [apiKeySaved, setApiKeySaved] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [newProjectName, setNewProjectName] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+  const [editingColor, setEditingColor] = useState('');
 
   const reload = useCallback(async () => {
     const [key, projectRows] = await Promise.all([getApiKey(), listProjects(db)]);
@@ -47,6 +53,19 @@ export default function SettingsScreen() {
     const color = PALETTE[projects.length % PALETTE.length];
     await createProject(db, newProjectName.trim(), color);
     setNewProjectName('');
+    reload();
+  }
+
+  function startEditing(project: Project) {
+    setEditingId(project.id);
+    setEditingName(project.name);
+    setEditingColor(project.color);
+  }
+
+  async function handleSaveEdit() {
+    if (!editingId || !editingName.trim()) return;
+    await updateProject(db, editingId, { name: editingName.trim(), color: editingColor });
+    setEditingId(null);
     reload();
   }
 
@@ -81,6 +100,7 @@ export default function SettingsScreen() {
         value={apiKey}
         onChangeText={setApiKeyState}
         placeholder="AIza..."
+        placeholderTextColor={theme.textMuted}
         secureTextEntry
         autoCapitalize="none"
         autoCorrect={false}
@@ -94,20 +114,58 @@ export default function SettingsScreen() {
         The only place new projects are created. Tasks can only pick from open projects.
       </Text>
 
-      {projects.map((p) => (
-        <View key={p.id} style={styles.projectRow}>
-          <View style={[styles.colorDot, { backgroundColor: p.color }]} />
-          <Text style={[styles.projectName, p.is_closed ? styles.projectClosed : null]}>
-            {p.name}
-            {p.is_closed ? ' (closed)' : ''}
-          </Text>
-          {!p.is_closed && (
-            <Pressable onPress={() => handleCloseProject(p)} hitSlop={8}>
-              <Text style={styles.closeText}>Close</Text>
-            </Pressable>
-          )}
-        </View>
-      ))}
+      {projects.map((p) =>
+        editingId === p.id ? (
+          <View key={p.id} style={styles.editingBox}>
+            <TextInput
+              style={styles.input}
+              value={editingName}
+              onChangeText={setEditingName}
+              placeholder="Project name"
+              placeholderTextColor={theme.textMuted}
+            />
+            <View style={styles.colorSwatchRow}>
+              {PALETTE.map((c) => (
+                <Pressable
+                  key={c}
+                  style={[
+                    styles.colorSwatch,
+                    { backgroundColor: c },
+                    editingColor === c && styles.colorSwatchSelected,
+                  ]}
+                  onPress={() => setEditingColor(c)}
+                />
+              ))}
+            </View>
+            <View style={styles.editingActions}>
+              <Pressable onPress={() => setEditingId(null)} hitSlop={8}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable onPress={handleSaveEdit} hitSlop={8}>
+                <Text style={styles.saveEditText}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+          <View key={p.id} style={styles.projectRow}>
+            <View style={[styles.colorDot, { backgroundColor: p.color }]} />
+            <Text style={[styles.projectName, p.is_closed ? styles.projectClosed : null]}>
+              {p.name}
+              {p.is_closed ? ' (closed)' : ''}
+            </Text>
+            {!p.is_closed && (
+              <>
+                <Pressable onPress={() => startEditing(p)} hitSlop={8}>
+                  <Text style={styles.editText}>Edit</Text>
+                </Pressable>
+                <Pressable onPress={() => handleCloseProject(p)} hitSlop={8}>
+                  <Text style={styles.closeText}>Close</Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+        )
+      )}
 
       <View style={styles.addProjectRow}>
         <TextInput
@@ -115,6 +173,7 @@ export default function SettingsScreen() {
           value={newProjectName}
           onChangeText={setNewProjectName}
           placeholder="New project name"
+          placeholderTextColor={theme.textMuted}
         />
         <Pressable style={styles.addButton} onPress={handleAddProject}>
           <Text style={styles.addButtonText}>Add</Text>
@@ -124,47 +183,63 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  content: { padding: 16 },
-  sectionTitle: { fontSize: 17, fontWeight: '700' },
-  projectsHeader: { marginTop: 32 },
-  helperText: { fontSize: 13, color: '#666', marginTop: 4, marginBottom: 12 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-  },
-  saveButton: {
-    marginTop: 12,
-    backgroundColor: '#111',
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  saveButtonText: { color: '#fff', fontWeight: '600' },
-  projectRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#DDD',
-  },
-  colorDot: { width: 10, height: 10, borderRadius: 5 },
-  projectName: { flex: 1, fontSize: 15 },
-  projectClosed: { color: '#999' },
-  closeText: { color: '#DC2626', fontSize: 13 },
-  addProjectRow: { flexDirection: 'row', gap: 8, marginTop: 16, alignItems: 'center' },
-  addProjectInput: { flex: 1 },
-  addButton: {
-    backgroundColor: '#111',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  addButtonText: { color: '#fff', fontWeight: '600' },
-});
+function createStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    content: { padding: 16 },
+    sectionTitle: { fontSize: 17, fontWeight: '700', color: c.text },
+    projectsHeader: { marginTop: 32 },
+    helperText: { fontSize: 13, color: c.textSecondary, marginTop: 4, marginBottom: 12 },
+    input: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 15,
+      color: c.text,
+    },
+    saveButton: {
+      marginTop: 12,
+      backgroundColor: c.accent,
+      borderRadius: 10,
+      paddingVertical: 12,
+      alignItems: 'center',
+    },
+    saveButtonText: { color: c.accentText, fontWeight: '600' },
+    projectRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingVertical: 10,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+    },
+    colorDot: { width: 10, height: 10, borderRadius: 5 },
+    projectName: { flex: 1, fontSize: 15, color: c.text },
+    projectClosed: { color: c.textMuted },
+    editText: { color: c.link, fontSize: 13, marginRight: 16 },
+    closeText: { color: c.danger, fontSize: 13 },
+    editingBox: {
+      paddingVertical: 12,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+      gap: 10,
+    },
+    colorSwatchRow: { flexDirection: 'row', gap: 10 },
+    colorSwatch: { width: 28, height: 28, borderRadius: 14 },
+    colorSwatchSelected: { borderWidth: 3, borderColor: c.text },
+    editingActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 20 },
+    cancelText: { color: c.textSecondary, fontSize: 14 },
+    saveEditText: { color: c.text, fontWeight: '600', fontSize: 14 },
+    addProjectRow: { flexDirection: 'row', gap: 8, marginTop: 16, alignItems: 'center' },
+    addProjectInput: { flex: 1 },
+    addButton: {
+      backgroundColor: c.accent,
+      borderRadius: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+    },
+    addButtonText: { color: c.accentText, fontWeight: '600' },
+  });
+}

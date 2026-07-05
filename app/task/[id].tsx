@@ -2,7 +2,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -33,12 +33,15 @@ import {
   stopTimer,
   updateTask,
 } from '../../lib/queries';
+import { useThemeColors, type ThemeColors } from '../../lib/theme';
 import type { Project, Task, TimeSession } from '../../lib/types';
 
 export default function TaskDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const db = useSQLiteContext();
   const router = useRouter();
+  const c = useThemeColors();
+  const styles = useMemo(() => createStyles(c), [c]);
 
   const [task, setTask] = useState<Task | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -81,7 +84,7 @@ export default function TaskDetailScreen() {
   if (!task) {
     return (
       <View style={styles.container}>
-        <Text>Loading…</Text>
+        <Text style={{ color: c.text }}>Loading…</Text>
       </View>
     );
   }
@@ -183,7 +186,9 @@ export default function TaskDetailScreen() {
           <Text style={styles.label}>Due date</Text>
           <View style={styles.dueDateRow}>
             <Pressable style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
-              <Text>{dueDate ? formatDateDMY(toDateString(dueDate)) : 'No due date'}</Text>
+              <Text style={{ color: c.text }}>
+                {dueDate ? formatDateDMY(toDateString(dueDate)) : 'No due date'}
+              </Text>
             </Pressable>
             {dueDate && (
               <Pressable onPress={() => setDueDate(null)} hitSlop={8}>
@@ -282,80 +287,83 @@ function parseDateString(s: string): Date {
   return new Date(year, month - 1, day);
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+function createStyles(c: ThemeColors) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   content: { padding: 16 },
   headerButtons: { flexDirection: 'row', gap: 16 },
-  headerButtonText: { fontSize: 15, color: '#111' },
-  deleteText: { fontSize: 15, color: '#DC2626' },
-  title: { fontSize: 22, fontWeight: '700' },
-  description: { fontSize: 15, color: '#444', marginTop: 8 },
+  headerButtonText: { fontSize: 15, color: c.text },
+  deleteText: { fontSize: 15, color: c.danger },
+  title: { fontSize: 22, fontWeight: '700', color: c.text },
+  description: { fontSize: 15, color: c.textSecondary, marginTop: 8 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
   colorDot: { width: 10, height: 10, borderRadius: 5 },
-  metaText: { fontSize: 14, color: '#666', marginTop: 4 },
+  metaText: { fontSize: 14, color: c.textSecondary, marginTop: 4 },
   timerBox: {
     marginTop: 20,
     padding: 16,
     borderRadius: 12,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: c.surface,
     alignItems: 'center',
     gap: 12,
   },
-  timerText: { fontSize: 28, fontWeight: '700' },
+  timerText: { fontSize: 28, fontWeight: '700', color: c.text },
   timerButton: {
-    backgroundColor: '#111',
+    backgroundColor: c.accent,
     paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 10,
   },
-  timerButtonRunning: { backgroundColor: '#DC2626' },
-  timerButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
+  timerButtonRunning: { backgroundColor: c.danger },
+  timerButtonText: { color: c.accentText, fontWeight: '600', fontSize: 16 },
   doneButton: {
     marginTop: 16,
     borderWidth: 1,
-    borderColor: '#111',
+    borderColor: c.text,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
   },
-  doneButtonText: { fontWeight: '600' },
-  sectionTitle: { fontSize: 15, fontWeight: '600', marginTop: 28, marginBottom: 8 },
-  emptyText: { color: '#999', fontSize: 13 },
+  doneButtonText: { fontWeight: '600', color: c.text },
+  sectionTitle: { fontSize: 15, fontWeight: '600', marginTop: 28, marginBottom: 8, color: c.text },
+  emptyText: { color: c.textMuted, fontSize: 13 },
   sessionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#DDD',
+    borderBottomColor: c.border,
   },
-  sessionText: { fontSize: 13, color: '#444' },
-  sessionDuration: { fontSize: 13, fontWeight: '600' },
-  label: { fontSize: 13, fontWeight: '600', color: '#555', marginTop: 16, marginBottom: 6 },
+  sessionText: { fontSize: 13, color: c.textSecondary },
+  sessionDuration: { fontSize: 13, fontWeight: '600', color: c.text },
+  label: { fontSize: 13, fontWeight: '600', color: c.textSecondary, marginTop: 16, marginBottom: 6 },
   input: {
     borderWidth: 1,
-    borderColor: '#DDD',
+    borderColor: c.border,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
+    color: c.text,
   },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
-  pickerWrap: { borderWidth: 1, borderColor: '#DDD', borderRadius: 8 },
+  pickerWrap: { borderWidth: 1, borderColor: c.border, borderRadius: 8 },
   dueDateRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   dateButton: {
     borderWidth: 1,
-    borderColor: '#DDD',
+    borderColor: c.border,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  clearText: { color: '#DC2626', fontSize: 13 },
+  clearText: { color: c.danger, fontSize: 13 },
   saveButton: {
     marginTop: 24,
-    backgroundColor: '#111',
+    backgroundColor: c.accent,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
   },
-  saveButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-});
+  saveButtonText: { color: c.accentText, fontWeight: '600', fontSize: 16 },
+  });
+}

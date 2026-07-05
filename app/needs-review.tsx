@@ -1,10 +1,11 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatDateTimeDMY } from '../lib/format';
 import { listPendingCaptures, resolvePendingCapture } from '../lib/queries';
+import { useThemeColors, type ThemeColors } from '../lib/theme';
 import type { PendingCapture } from '../lib/types';
 
 const REASON_LABELS: Record<string, string> = {
@@ -16,6 +17,8 @@ const REASON_LABELS: Record<string, string> = {
 export default function NeedsReviewScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
+  const c = useThemeColors();
+  const styles = useMemo(() => createStyles(c), [c]);
   const [captures, setCaptures] = useState<PendingCapture[]>([]);
 
   const reload = useCallback(async () => {
@@ -96,32 +99,34 @@ export default function NeedsReviewScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  content: { padding: 16 },
-  emptyText: { textAlign: 'center', marginTop: 40, color: '#999' },
-  row: {
-    padding: 14,
-    borderRadius: 10,
-    backgroundColor: '#F8F8F8',
-    marginBottom: 12,
-  },
-  rawText: { fontSize: 15, color: '#111' },
-  reasonText: { fontSize: 12, color: '#999', marginTop: 6 },
-  actionsRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
-  retryButton: {
-    backgroundColor: '#111',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  retryButtonText: { color: '#fff', fontWeight: '600', fontSize: 13 },
-  discardButton: {
-    borderWidth: 1,
-    borderColor: '#DC2626',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  discardButtonText: { color: '#DC2626', fontWeight: '600', fontSize: 13 },
-});
+function createStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    content: { padding: 16 },
+    emptyText: { textAlign: 'center', marginTop: 40, color: c.textMuted },
+    row: {
+      padding: 14,
+      borderRadius: 10,
+      backgroundColor: c.surface,
+      marginBottom: 12,
+    },
+    rawText: { fontSize: 15, color: c.text },
+    reasonText: { fontSize: 12, color: c.textMuted, marginTop: 6 },
+    actionsRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
+    retryButton: {
+      backgroundColor: c.accent,
+      borderRadius: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    retryButtonText: { color: c.accentText, fontWeight: '600', fontSize: 13 },
+    discardButton: {
+      borderWidth: 1,
+      borderColor: c.danger,
+      borderRadius: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    discardButtonText: { color: c.danger, fontWeight: '600', fontSize: 13 },
+  });
+}

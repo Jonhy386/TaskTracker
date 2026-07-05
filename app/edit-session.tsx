@@ -1,14 +1,17 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatDateTimeDMY } from '../lib/format';
 import { getSessionById, updateSessionTimes } from '../lib/queries';
+import { useThemeColors, type ThemeColors } from '../lib/theme';
 
 export default function EditSessionScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
+  const c = useThemeColors();
+  const styles = useMemo(() => createStyles(c), [c]);
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const [loaded, setLoaded] = useState(false);
   const [startTime, setStartTime] = useState(new Date());
@@ -37,7 +40,7 @@ export default function EditSessionScreen() {
   if (!loaded) {
     return (
       <View style={styles.container}>
-        <Text>Loading…</Text>
+        <Text style={{ color: c.text }}>Loading…</Text>
       </View>
     );
   }
@@ -46,12 +49,12 @@ export default function EditSessionScreen() {
     <View style={styles.container}>
       <Text style={styles.label}>Start</Text>
       <Pressable style={styles.dateButton} onPress={() => setShowPicker('start')}>
-        <Text>{formatDateTimeDMY(startTime.toISOString())}</Text>
+        <Text style={{ color: c.text }}>{formatDateTimeDMY(startTime.toISOString())}</Text>
       </Pressable>
 
       <Text style={styles.label}>End</Text>
       <Pressable style={styles.dateButton} onPress={() => setShowPicker('end')}>
-        <Text>{formatDateTimeDMY(endTime.toISOString())}</Text>
+        <Text style={{ color: c.text }}>{formatDateTimeDMY(endTime.toISOString())}</Text>
       </Pressable>
 
       {showPicker && (
@@ -82,24 +85,26 @@ export default function EditSessionScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: '#555', marginTop: 16, marginBottom: 6 },
-  dateButton: {
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  doneButton: { marginTop: 8, alignItems: 'center', paddingVertical: 8 },
-  doneButtonText: { color: '#4F46E5', fontWeight: '600' },
-  saveButton: {
-    marginTop: 24,
-    backgroundColor: '#111',
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  saveButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-});
+function createStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background, padding: 16 },
+    label: { fontSize: 13, fontWeight: '600', color: c.textSecondary, marginTop: 16, marginBottom: 6 },
+    dateButton: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    doneButton: { marginTop: 8, alignItems: 'center', paddingVertical: 8 },
+    doneButtonText: { color: c.link, fontWeight: '600' },
+    saveButton: {
+      marginTop: 24,
+      backgroundColor: c.accent,
+      borderRadius: 10,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    saveButtonText: { color: c.accentText, fontWeight: '600', fontSize: 16 },
+  });
+}

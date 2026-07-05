@@ -4,18 +4,29 @@ import { StatusBar } from 'expo-status-bar';
 import { Suspense } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { DATABASE_NAME, migrateDbIfNeeded } from '../lib/db';
+import { useThemeColors } from '../lib/theme';
 
 export default function RootLayout() {
+  const c = useThemeColors();
+
   return (
     <Suspense
       fallback={
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.background }}>
           <ActivityIndicator />
         </View>
       }
     >
       <SQLiteProvider databaseName={DATABASE_NAME} onInit={migrateDbIfNeeded} useSuspense>
-        <Stack screenOptions={{ headerBackTitle: 'Back' }}>
+        <Stack
+          screenOptions={{
+            headerBackTitle: 'Back',
+            headerStyle: { backgroundColor: c.background },
+            headerTintColor: c.text,
+            headerShadowVisible: false,
+            contentStyle: { backgroundColor: c.background },
+          }}
+        >
           <Stack.Screen name="index" options={{ title: 'Tasks' }} />
           <Stack.Screen name="task/[id]" options={{ title: 'Task' }} />
           <Stack.Screen name="new-task" options={{ title: 'New Task', presentation: 'modal' }} />

@@ -13,6 +13,7 @@ export interface ParsedIdea {
   type: 'idea';
   title: string;
   body: string;
+  project_id: string | null;
 }
 
 export type ParsedCapture = ParsedTask | ParsedIdea;
@@ -76,7 +77,7 @@ If capture_type is "task": fill title, description, due_date, project_name. Toda
     projectNames.join(', ') || '(none available)'
   }. Leave description/due_date/project_name as empty strings if not applicable.
 
-If capture_type is "idea": fill idea_title (a short, clear title you generate) and idea_body (a cleaned-up, coherent write-up of what was said — fix false starts, filler words, and rambling into clear prose that preserves the actual meaning; don't add anything that wasn't said). Leave title/description/due_date/project_name as empty strings.`;
+If capture_type is "idea": fill idea_title (a short, clear title you generate) and idea_body (a cleaned-up, coherent write-up of what was said — fix false starts, filler words, and rambling into clear prose that preserves the actual meaning; don't add anything that wasn't said). An idea can also optionally be linked to a project — set project_name (same rule as above, exact match or empty string) if the idea is clearly about one of the open projects. Leave title/description/due_date as empty strings.`;
 
   let response: Response;
   try {
@@ -106,9 +107,9 @@ If capture_type is "idea": fill idea_title (a short, clear title you generate) a
                 },
                 project_name: {
                   type: 'STRING',
-                  description: `For a task, must exactly match one of: ${
+                  description: `Optional project link for either a task or an idea. Must exactly match one of: ${
                     projectNames.join(', ') || '(none available)'
-                  }. Empty string if unclear or idea.`,
+                  }. Empty string if unclear or not applicable.`,
                 },
                 idea_title: {
                   type: 'STRING',
@@ -157,10 +158,14 @@ If capture_type is "idea": fill idea_title (a short, clear title you generate) a
     if (typeof parsed.idea_title !== 'string' || !parsed.idea_title.trim()) {
       throw new ParseError('malformed_response', 'Gemini idea response had no usable title.');
     }
+    const ideaProject = openProjects.find(
+      (p) => p.name.toLowerCase() === String(parsed.project_name ?? '').toLowerCase()
+    );
     return {
       type: 'idea',
       title: parsed.idea_title.trim(),
       body: typeof parsed.idea_body === 'string' ? parsed.idea_body.trim() : '',
+      project_id: ideaProject?.id ?? null,
     };
   }
 
