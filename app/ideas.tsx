@@ -1,20 +1,38 @@
 import { useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatDateTimeDMY } from '../lib/format';
-import { listIdeas } from '../lib/queries';
+import { deleteIdea, listIdeas } from '../lib/queries';
 import type { Idea } from '../lib/types';
 
 export default function IdeasScreen() {
   const db = useSQLiteContext();
   const [ideas, setIdeas] = useState<Idea[]>([]);
 
+  const reload = useCallback(() => {
+    listIdeas(db).then(setIdeas);
+  }, [db]);
+
   useFocusEffect(
     useCallback(() => {
-      listIdeas(db).then(setIdeas);
-    }, [db])
+      reload();
+    }, [reload])
   );
+
+  function handleDelete(idea: Idea) {
+    Alert.alert('Delete this idea?', idea.title, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteIdea(db, idea.id);
+          reload();
+        },
+      },
+    ]);
+  }
 
   return (
     <FlatList
@@ -29,7 +47,12 @@ export default function IdeasScreen() {
       }
       renderItem={({ item }) => (
         <View style={styles.row}>
-          <Text style={styles.title}>{item.title}</Text>
+          <View style={styles.rowHeader}>
+            <Text style={styles.title}>{item.title}</Text>
+            <Pressable onPress={() => handleDelete(item)} hitSlop={8}>
+              <Text style={styles.deleteText}>Delete</Text>
+            </Pressable>
+          </View>
           <Text style={styles.body}>{item.body}</Text>
           <Text style={styles.date}>{formatDateTimeDMY(item.created_at)}</Text>
         </View>
@@ -48,7 +71,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F8F8',
     marginBottom: 12,
   },
-  title: { fontSize: 16, fontWeight: '600' },
+  rowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  title: { fontSize: 16, fontWeight: '600', flex: 1, marginRight: 12 },
+  deleteText: { color: '#DC2626', fontSize: 13 },
   body: { fontSize: 14, color: '#444', marginTop: 6, lineHeight: 20 },
   date: { fontSize: 12, color: '#999', marginTop: 8 },
 });

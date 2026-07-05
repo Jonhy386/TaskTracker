@@ -168,11 +168,52 @@ async function stopSession(db: SQLiteDatabase, session: TimeSession): Promise<vo
     durationSeconds,
     session.id
   );
-  await recomputeTotalTime(db, session.task_id);
+  if (session.task_id) {
+    await recomputeTotalTime(db, session.task_id);
+  }
 }
 
 // Starting a timer on any task auto-stops whatever timer is currently running.
 export async function startTimer(db: SQLiteDatabase, taskId: string): Promise<TimeSession> {
+  const id = generateId();
+  const startTime = new Date().toISOString();
+  const task = await getTask(db, taskId);
+  if (!task) {
+    throw new Error(`Task not found: ${taskId}`);
+  }
+
+  await db.withTransactionAsync(async () => {
+    const running = await getRunningSession(db);
+    if (running) {
+      await stopSession(db, running);
+    }
+    await db.runAsync(
+      'INSERT INTO time_sessions (id, task_id, project_id, start_time, end_time, duration_seconds) VALUES (?, ?, ?, ?, NULL, NULL)',
+      id,
+      taskId,
+      task.project_id,
+      startTime
+    );
+    if (task.status === 'not_started') {
+      await updateTask(db, taskId, { status: 'in_progress' });
+    }
+  });
+
+  return {
+    id,
+    task_id: taskId,
+    project_id: task.project_id,
+    start_time: startTime,
+    end_time: null,
+    duration_seconds: null,
+  };
+}
+
+// Starting a timer for a project directly (no task yet) — same single-active-timer rule.
+export async function startProjectTimer(
+  db: SQLiteDatabase,
+  projectId: string
+): Promise<TimeSession> {
   const id = generateId();
   const startTime = new Date().toISOString();
 
@@ -182,18 +223,21 @@ export async function startTimer(db: SQLiteDatabase, taskId: string): Promise<Ti
       await stopSession(db, running);
     }
     await db.runAsync(
-      'INSERT INTO time_sessions (id, task_id, start_time, end_time, duration_seconds) VALUES (?, ?, ?, NULL, NULL)',
+      'INSERT INTO time_sessions (id, task_id, project_id, start_time, end_time, duration_seconds) VALUES (?, NULL, ?, ?, NULL, NULL)',
       id,
-      taskId,
+      projectId,
       startTime
     );
-    const task = await getTask(db, taskId);
-    if (task && task.status === 'not_started') {
-      await updateTask(db, taskId, { status: 'in_progress' });
-    }
   });
 
-  return { id, task_id: taskId, start_time: startTime, end_time: null, duration_seconds: null };
+  return {
+    id,
+    task_id: null,
+    project_id: projectId,
+    start_time: startTime,
+    end_time: null,
+    duration_seconds: null,
+  };
 }
 
 export async function stopTimer(db: SQLiteDatabase, sessionId: string): Promise<void> {
@@ -218,8 +262,58 @@ export async function listSessionsForTask(
   );
 }
 
+export async function getSessionById(
+  db: SQLiteDatabase,
+  id: string
+): Promise<TimeSession | null> {
+  return db.getFirstAsync<TimeSession>('SELECT * FROM time_sessions WHERE id = ?', id);
+}
+
+// Stopped, not-yet-assigned-to-a-task sessions — logged against a project directly.
+export async function listUncategorizedSessions(db: SQLiteDatabase): Promise<TimeSession[]> {
+  return db.getAllAsync<TimeSession>(
+    `SELECT * FROM time_sessions
+     WHERE task_id IS NULL AND end_time IS NOT NULL
+     ORDER BY start_time DESC`
+  );
+}
+
+export async function assignSessionToTask(
+  db: SQLiteDatabase,
+  sessionId: string,
+  taskId: string
+): Promise<void> {
+  await db.runAsync('UPDATE time_sessions SET task_id = ? WHERE id = ?', taskId, sessionId);
+  await recomputeTotalTime(db, taskId);
+}
+
+// Edits a stopped session's start/end time and recomputes duration + the
+// owning task's total (if it has one).
+export async function updateSessionTimes(
+  db: SQLiteDatabase,
+  sessionId: string,
+  startTime: string,
+  endTime: string
+): Promise<void> {
+  const durationSeconds = Math.max(
+    0,
+    Math.round((new Date(endTime).getTime() - new Date(startTime).getTime()) / 1000)
+  );
+  const session = await getSessionById(db, sessionId);
+  await db.runAsync(
+    'UPDATE time_sessions SET start_time = ?, end_time = ?, duration_seconds = ? WHERE id = ?',
+    startTime,
+    endTime,
+    durationSeconds,
+    sessionId
+  );
+  if (session?.task_id) {
+    await recomputeTotalTime(db, session.task_id);
+  }
+}
+
 export interface TaskTimeForDay {
-  task_id: string;
+  task_id: string | null;
   title: string;
   project_id: string;
   total_seconds: number;
@@ -238,8 +332,18 @@ export async function getTaskTimeForDay(
     JOIN tasks t ON t.id = ts.task_id
     WHERE date(ts.start_time, 'localtime') = ? AND ts.duration_seconds IS NOT NULL
     GROUP BY t.id
+
+    UNION ALL
+
+    SELECT NULL as task_id, 'Uncategorized time' as title, ts.project_id as project_id,
+           SUM(ts.duration_seconds) as total_seconds
+    FROM time_sessions ts
+    WHERE ts.task_id IS NULL AND date(ts.start_time, 'localtime') = ? AND ts.duration_seconds IS NOT NULL
+    GROUP BY ts.project_id
+
     ORDER BY total_seconds DESC
   `,
+    day,
     day
   );
 }
@@ -305,4 +409,8 @@ export async function createIdea(db: SQLiteDatabase, title: string, body: string
 
 export async function listIdeas(db: SQLiteDatabase): Promise<Idea[]> {
   return db.getAllAsync<Idea>('SELECT * FROM ideas ORDER BY created_at DESC');
+}
+
+export async function deleteIdea(db: SQLiteDatabase, id: string): Promise<void> {
+  await db.runAsync('DELETE FROM ideas WHERE id = ?', id);
 }

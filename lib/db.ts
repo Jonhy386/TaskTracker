@@ -10,7 +10,7 @@ const DEFAULT_PROJECTS = [
 ];
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
-  const DATABASE_VERSION = 3;
+  const DATABASE_VERSION = 4;
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
   let currentVersion = row?.user_version ?? 0;
   if (currentVersion >= DATABASE_VERSION) {
@@ -90,6 +90,38 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
       );
     `);
     currentVersion = 3;
+  }
+
+  if (currentVersion === 3) {
+    // Rebuild time_sessions to allow task_id to be null (time logged against a
+    // project directly, categorized into a task later). project_id is
+    // denormalized onto every session (backfilled from the task for existing
+    // rows) so a session keeps its original project attribution even if the
+    // task is later reassigned to a different project.
+    await db.execAsync(`
+      CREATE TABLE time_sessions_new (
+        id TEXT PRIMARY KEY NOT NULL,
+        task_id TEXT,
+        project_id TEXT NOT NULL,
+        start_time TEXT NOT NULL,
+        end_time TEXT,
+        duration_seconds INTEGER,
+        FOREIGN KEY (task_id) REFERENCES tasks(id),
+        FOREIGN KEY (project_id) REFERENCES projects(id)
+      );
+
+      INSERT INTO time_sessions_new (id, task_id, project_id, start_time, end_time, duration_seconds)
+      SELECT ts.id, ts.task_id, t.project_id, ts.start_time, ts.end_time, ts.duration_seconds
+      FROM time_sessions ts
+      JOIN tasks t ON t.id = ts.task_id;
+
+      DROP TABLE time_sessions;
+      ALTER TABLE time_sessions_new RENAME TO time_sessions;
+
+      CREATE INDEX IF NOT EXISTS idx_sessions_task ON time_sessions(task_id);
+      CREATE INDEX IF NOT EXISTS idx_sessions_project ON time_sessions(project_id);
+    `);
+    currentVersion = 4;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

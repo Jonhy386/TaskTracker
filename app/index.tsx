@@ -6,7 +6,7 @@ import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-n
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ElapsedTime } from '../components/ElapsedTime';
 import { formatDuration, formatDueDate } from '../lib/format';
-import { getRunningSession, listProjects, listTasks } from '../lib/queries';
+import { getRunningSession, listProjects, listTasks, stopTimer } from '../lib/queries';
 import type { Project, Task, TaskStatus, TimeSession } from '../lib/types';
 
 const STATUS_FILTERS: { label: string; value: TaskStatus | null }[] = [
@@ -60,6 +60,26 @@ export default function TaskListScreen() {
           ),
         }}
       />
+
+      {running && running.task_id === null && (
+        <View style={styles.projectTimerBanner}>
+          <Pressable style={styles.projectTimerInfo} onPress={() => router.push('/log-time')}>
+            <Text style={styles.projectTimerText}>
+              ⏱ {projectById.get(running.project_id)?.name ?? 'Project'} —{' '}
+            </Text>
+            <ElapsedTime startTime={running.start_time} style={styles.projectTimerText} />
+          </Pressable>
+          <Pressable
+            style={styles.projectTimerStop}
+            onPress={async () => {
+              await stopTimer(db, running.id);
+              reload();
+            }}
+          >
+            <Text style={styles.projectTimerStopText}>Stop</Text>
+          </Pressable>
+        </View>
+      )}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow}>
         <FilterChip
@@ -180,6 +200,20 @@ function StatusBadge({ status }: { status: TaskStatus }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   hamburgerText: { fontSize: 22, paddingHorizontal: 8 },
+  projectTimerBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 12,
+    marginTop: 8,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: '#FEF3C7',
+  },
+  projectTimerInfo: { flexDirection: 'row', flex: 1 },
+  projectTimerText: { fontSize: 14, fontWeight: '600', color: '#92400E' },
+  projectTimerStop: { backgroundColor: '#DC2626', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 6 },
+  projectTimerStopText: { color: '#fff', fontWeight: '600', fontSize: 13 },
   fabRow: {
     position: 'absolute',
     left: 24,

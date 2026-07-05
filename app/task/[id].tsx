@@ -247,7 +247,12 @@ export default function TaskDetailScreen() {
             <Text style={styles.emptyText}>No sessions logged yet.</Text>
           ) : (
             sessions.map((s) => (
-              <View key={s.id} style={styles.sessionRow}>
+              <Pressable
+                key={s.id}
+                style={styles.sessionRow}
+                disabled={!s.end_time}
+                onPress={() => router.push(`/edit-session?sessionId=${s.id}`)}
+              >
                 <Text style={styles.sessionText}>
                   {formatDateTimeDMY(s.start_time)}
                   {s.end_time ? ` – ${formatTimeOnly(s.end_time)}` : ' – running'}
@@ -255,7 +260,7 @@ export default function TaskDetailScreen() {
                 <Text style={styles.sessionDuration}>
                   {s.duration_seconds != null ? formatDuration(s.duration_seconds) : '…'}
                 </Text>
-              </View>
+              </Pressable>
             ))
           )}
         </>

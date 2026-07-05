@@ -1,5 +1,5 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
 import { FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -22,6 +22,7 @@ function addDays(date: Date, delta: number): Date {
 
 export default function ReportsScreen() {
   const db = useSQLiteContext();
+  const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [tasks, setTasks] = useState<TaskTimeForDay[]>([]);
@@ -89,21 +90,27 @@ export default function ReportsScreen() {
         style={styles.list}
         contentContainerStyle={styles.listContent}
         data={tasks}
-        keyExtractor={(t) => t.task_id}
+        keyExtractor={(t) => t.task_id ?? `uncategorized-${t.project_id}`}
         ListEmptyComponent={
           <Text style={styles.emptyText}>No time tracked on this day.</Text>
         }
         renderItem={({ item }) => {
           const project = projectById.get(item.project_id);
+          const isUncategorized = item.task_id === null;
           return (
-            <View style={styles.row}>
+            <Pressable
+              style={styles.row}
+              onPress={isUncategorized ? () => router.push('/log-time') : undefined}
+            >
               <View style={[styles.colorDot, { backgroundColor: project?.color ?? '#999' }]} />
               <View style={styles.taskInfo}>
-                <Text style={styles.taskTitle}>{item.title}</Text>
+                <Text style={[styles.taskTitle, isUncategorized && styles.uncategorizedTitle]}>
+                  {item.title}
+                </Text>
                 <Text style={styles.taskMeta}>{project?.name ?? 'Unknown project'}</Text>
               </View>
               <Text style={styles.durationText}>{formatDuration(item.total_seconds)}</Text>
-            </View>
+            </Pressable>
           );
         }}
       />
@@ -155,6 +162,7 @@ const styles = StyleSheet.create({
   colorDot: { width: 10, height: 10, borderRadius: 5 },
   taskInfo: { flex: 1 },
   taskTitle: { fontSize: 15, fontWeight: '600' },
+  uncategorizedTitle: { fontStyle: 'italic', color: '#666' },
   taskMeta: { fontSize: 13, color: '#666', marginTop: 2 },
   durationText: { fontSize: 14, fontWeight: '600', color: '#111' },
 });

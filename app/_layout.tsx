@@ -28,6 +28,15 @@ export default function RootLayout() {
           <Stack.Screen name="reports" options={{ title: 'Time Report' }} />
           <Stack.Screen name="calendar" options={{ title: 'Calendar' }} />
           <Stack.Screen name="ideas" options={{ title: 'Ideas' }} />
+          <Stack.Screen name="log-time" options={{ title: 'Log Time' }} />
+          <Stack.Screen
+            name="categorize-session"
+            options={{ title: 'Categorize Time', presentation: 'modal' }}
+          />
+          <Stack.Screen
+            name="edit-session"
+            options={{ title: 'Edit Time', presentation: 'modal' }}
+          />
           <Stack.Screen name="menu" options={{ title: 'Menu', presentation: 'modal' }} />
         </Stack>
         <StatusBar style="auto" />

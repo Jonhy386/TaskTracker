@@ -1,9 +1,14 @@
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-const ITEMS: { label: string; icon: string; route: '/calendar' | '/reports' | '/ideas' | '/needs-review' | '/settings' }[] = [
+const ITEMS: {
+  label: string;
+  icon: string;
+  route: '/calendar' | '/reports' | '/ideas' | '/log-time' | '/needs-review' | '/settings';
+}[] = [
   { label: 'Calendar', icon: '📅', route: '/calendar' },
   { label: 'Time Report', icon: '📊', route: '/reports' },
+  { label: 'Log Time', icon: '⏱️', route: '/log-time' },
   { label: 'Ideas', icon: '💡', route: '/ideas' },
   { label: 'Needs Review', icon: '📋', route: '/needs-review' },
   { label: 'Settings', icon: '⚙️', route: '/settings' },

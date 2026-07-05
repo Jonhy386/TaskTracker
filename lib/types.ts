@@ -23,7 +23,8 @@ export interface Task {
 
 export interface TimeSession {
   id: string;
-  task_id: string;
+  task_id: string | null;
+  project_id: string;
   start_time: string;
   end_time: string | null;
   duration_seconds: number | null;
