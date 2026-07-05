@@ -33,6 +33,7 @@ import {
   stopTimer,
   updateTask,
 } from '../../lib/queries';
+import { hapticImpact, hapticSuccess, hapticWarning } from '../../lib/haptics';
 import { useThemeColors, type ThemeColors } from '../../lib/theme';
 import type { Project, Task, TimeSession } from '../../lib/types';
 
@@ -93,6 +94,7 @@ export default function TaskDetailScreen() {
   const isRunning = running?.task_id === task.id;
 
   async function handleStartStop() {
+    hapticImpact();
     if (isRunning && running) {
       await stopTimer(db, running.id);
     } else {
@@ -102,6 +104,7 @@ export default function TaskDetailScreen() {
   }
 
   async function handleMarkDone() {
+    hapticSuccess();
     await markTaskDone(db, task!.id);
     reload();
   }
@@ -113,6 +116,7 @@ export default function TaskDetailScreen() {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
+          hapticWarning();
           await deleteTask(db, task!.id);
           router.back();
         },

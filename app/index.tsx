@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ElapsedTime } from '../components/ElapsedTime';
 import { formatDuration } from '../lib/format';
+import { hapticImpact } from '../lib/haptics';
 import {
   getRunningSession,
   getTask,
@@ -62,6 +63,7 @@ export default function TodayScreen() {
 
   async function handleStop() {
     if (running) {
+      hapticImpact();
       await stopTimer(db, running.id);
       reload();
     }

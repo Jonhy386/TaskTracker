@@ -7,7 +7,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ElapsedTime } from '../components/ElapsedTime';
 import { SwipeableRow } from '../components/SwipeableRow';
 import { formatDuration, formatDueDate } from '../lib/format';
-import { deleteTask, getRunningSession, listProjects, listTasks, stopTimer } from '../lib/queries';
+import { hapticImpact, hapticSuccess, hapticWarning } from '../lib/haptics';
+import {
+  deleteTask,
+  getRunningSession,
+  listProjects,
+  listTasks,
+  markTaskDone,
+  stopTimer,
+} from '../lib/queries';
 import { useThemeColors, type ThemeColors } from '../lib/theme';
 import type { Project, Task, TaskStatus, TimeSession } from '../lib/types';
 
@@ -62,11 +70,18 @@ export default function TasksScreen() {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
+          hapticWarning();
           await deleteTask(db, task.id);
           reload();
         },
       },
     ]);
+  }
+
+  async function handleComplete(task: Task) {
+    hapticSuccess();
+    await markTaskDone(db, task.id);
+    reload();
   }
 
   return (
@@ -92,6 +107,7 @@ export default function TasksScreen() {
           <Pressable
             style={styles.projectTimerStop}
             onPress={async () => {
+              hapticImpact();
               await stopTimer(db, running.id);
               reload();
             }}
@@ -146,8 +162,12 @@ export default function TasksScreen() {
         renderItem={({ item }) => {
           const project = projectById.get(item.project_id);
           const isRunning = running?.task_id === item.id;
+          const canComplete = item.status !== 'done' && item.status !== 'cancelled';
           return (
-            <SwipeableRow onDelete={() => handleDelete(item)}>
+            <SwipeableRow
+              onDelete={() => handleDelete(item)}
+              onComplete={canComplete ? () => handleComplete(item) : undefined}
+            >
               <Pressable
                 style={styles.taskRow}
                 onPress={() => router.push(`/task/${item.id}`)}

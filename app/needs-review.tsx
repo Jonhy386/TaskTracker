@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SwipeableRow } from '../components/SwipeableRow';
 import { formatDateTimeDMY } from '../lib/format';
+import { hapticWarning } from '../lib/haptics';
 import { listPendingCaptures, resolvePendingCapture } from '../lib/queries';
 import { useThemeColors, type ThemeColors } from '../lib/theme';
 import type { PendingCapture } from '../lib/types';
@@ -57,6 +58,7 @@ export default function NeedsReviewScreen() {
           text: 'Discard',
           style: 'destructive',
           onPress: async () => {
+            hapticWarning();
             if (capture.audio_uri) {
               await FileSystem.deleteAsync(capture.audio_uri, { idempotent: true }).catch(() => {});
             }

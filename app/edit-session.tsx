@@ -4,6 +4,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatDateTimeDMY } from '../lib/format';
+import { hapticWarning } from '../lib/haptics';
 import { deleteSession, getSessionById, updateSessionTimes } from '../lib/queries';
 import { useThemeColors, type ThemeColors } from '../lib/theme';
 
@@ -47,6 +48,7 @@ export default function EditSessionScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            hapticWarning();
             await deleteSession(db, sessionId);
             router.back();
           },

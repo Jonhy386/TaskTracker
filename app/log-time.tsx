@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ElapsedTime } from '../components/ElapsedTime';
 import { formatDateTimeDMY, formatDuration, formatTimeOnly } from '../lib/format';
+import { hapticImpact } from '../lib/haptics';
 import {
   getRunningSession,
   listProjects,
@@ -43,12 +44,14 @@ export default function LogTimeScreen() {
   const projectById = new Map(projects.map((p) => [p.id, p]));
 
   async function handleStart(projectId: string) {
+    hapticImpact();
     await startProjectTimer(db, projectId);
     reload();
   }
 
   async function handleStop() {
     if (running) {
+      hapticImpact();
       await stopTimer(db, running.id);
       reload();
     }

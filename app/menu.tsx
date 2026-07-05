@@ -1,6 +1,8 @@
-import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useSQLiteContext } from 'expo-sqlite';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { listPendingCaptures } from '../lib/queries';
 import { useThemeColors, type ThemeColors } from '../lib/theme';
 
 const ITEMS: {
@@ -20,8 +22,16 @@ const ITEMS: {
 
 export default function MenuScreen() {
   const router = useRouter();
+  const db = useSQLiteContext();
   const c = useThemeColors();
   const styles = useMemo(() => createStyles(c), [c]);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      listPendingCaptures(db).then((rows) => setPendingCount(rows.length));
+    }, [db])
+  );
 
   return (
     <View style={styles.container}>
@@ -35,7 +45,10 @@ export default function MenuScreen() {
           }}
         >
           <Text style={styles.icon}>{item.icon}</Text>
-          <Text style={styles.label}>{item.label}</Text>
+          <Text style={styles.label}>
+            {item.label}
+            {item.route === '/needs-review' && pendingCount > 0 ? ` · ${pendingCount}` : ''}
+          </Text>
         </Pressable>
       ))}
     </View>

@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SwipeableRow } from '../components/SwipeableRow';
 import { formatDateTimeDMY } from '../lib/format';
+import { hapticWarning } from '../lib/haptics';
 import { deleteIdea, listIdeas, listProjects, setIdeaProject } from '../lib/queries';
 import { useThemeColors, type ThemeColors } from '../lib/theme';
 import type { Idea, Project } from '../lib/types';
@@ -41,6 +42,7 @@ export default function IdeasScreen() {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
+          hapticWarning();
           await deleteIdea(db, idea.id);
           reload();
         },
