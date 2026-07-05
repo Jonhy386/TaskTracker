@@ -3,6 +3,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { SwipeableRow } from '../components/SwipeableRow';
 import { formatDateTimeDMY } from '../lib/format';
 import { listPendingCaptures, resolvePendingCapture } from '../lib/queries';
 import { useThemeColors, type ThemeColors } from '../lib/theme';
@@ -77,23 +78,25 @@ export default function NeedsReviewScreen() {
         <Text style={styles.emptyText}>Nothing here — every note parsed cleanly.</Text>
       }
       renderItem={({ item }) => (
-        <View style={styles.row}>
-          <Text style={styles.rawText}>
-            {item.audio_uri ? '🎤 Voice note' : item.raw_text}
-          </Text>
-          <Text style={styles.reasonText}>
-            {REASON_LABELS[item.failure_reason] ?? item.failure_reason} ·{' '}
-            {formatDateTimeDMY(item.created_at)}
-          </Text>
-          <View style={styles.actionsRow}>
-            <Pressable style={styles.retryButton} onPress={() => handleRetry(item)}>
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </Pressable>
-            <Pressable style={styles.discardButton} onPress={() => handleDiscard(item)}>
-              <Text style={styles.discardButtonText}>Discard</Text>
-            </Pressable>
+        <SwipeableRow onDelete={() => handleDiscard(item)} label="Discard">
+          <View style={styles.row}>
+            <Text style={styles.rawText}>
+              {item.audio_uri ? '🎤 Voice note' : item.raw_text}
+            </Text>
+            <Text style={styles.reasonText}>
+              {REASON_LABELS[item.failure_reason] ?? item.failure_reason} ·{' '}
+              {formatDateTimeDMY(item.created_at)}
+            </Text>
+            <View style={styles.actionsRow}>
+              <Pressable style={styles.retryButton} onPress={() => handleRetry(item)}>
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </Pressable>
+              <Pressable style={styles.discardButton} onPress={() => handleDiscard(item)}>
+                <Text style={styles.discardButtonText}>Discard</Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
+        </SwipeableRow>
       )}
     />
   );

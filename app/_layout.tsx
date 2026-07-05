@@ -3,6 +3,7 @@ import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { Suspense } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { DATABASE_NAME, migrateDbIfNeeded } from '../lib/db';
 import { useThemeColors } from '../lib/theme';
 
@@ -10,6 +11,7 @@ export default function RootLayout() {
   const c = useThemeColors();
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <Suspense
       fallback={
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.background }}>
@@ -49,9 +51,11 @@ export default function RootLayout() {
             options={{ title: 'Edit Time', presentation: 'modal' }}
           />
           <Stack.Screen name="menu" options={{ title: 'Menu', presentation: 'modal' }} />
+          <Stack.Screen name="today" options={{ title: 'Today' }} />
         </Stack>
         <StatusBar style="auto" />
       </SQLiteProvider>
     </Suspense>
+    </GestureHandlerRootView>
   );
 }

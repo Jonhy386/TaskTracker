@@ -2,11 +2,12 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Stack } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ElapsedTime } from '../components/ElapsedTime';
+import { SwipeableRow } from '../components/SwipeableRow';
 import { formatDuration, formatDueDate } from '../lib/format';
-import { getRunningSession, listProjects, listTasks, stopTimer } from '../lib/queries';
+import { deleteTask, getRunningSession, listProjects, listTasks, stopTimer } from '../lib/queries';
 import { useThemeColors, type ThemeColors } from '../lib/theme';
 import type { Project, Task, TaskStatus, TimeSession } from '../lib/types';
 
@@ -53,6 +54,20 @@ export default function TaskListScreen() {
   );
 
   const projectById = new Map(projects.map((p) => [p.id, p]));
+
+  function handleDelete(task: Task) {
+    Alert.alert('Delete task?', `"${task.title}" and its tracked time will be removed.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteTask(db, task.id);
+          reload();
+        },
+      },
+    ]);
+  }
 
   return (
     <View style={styles.container}>
@@ -132,30 +147,32 @@ export default function TaskListScreen() {
           const project = projectById.get(item.project_id);
           const isRunning = running?.task_id === item.id;
           return (
-            <Pressable
-              style={styles.taskRow}
-              onPress={() => router.push(`/task/${item.id}`)}
-            >
-              <View style={[styles.colorDot, { backgroundColor: project?.color ?? '#999' }]} />
-              <View style={styles.taskInfo}>
-                <Text style={styles.taskTitle}>{item.title}</Text>
-                <Text style={styles.taskMeta}>
-                  {project?.name ?? 'Unknown project'}
-                  {item.due_date ? ` · ${formatDueDate(item.due_date)}` : ''}
-                  {item.total_time_seconds > 0
-                    ? ` · ${formatDuration(item.total_time_seconds)}`
-                    : ''}
-                </Text>
-              </View>
-              {isRunning && running ? (
-                <View style={styles.runningBadge}>
-                  <Text style={styles.runningDot}>●</Text>
-                  <ElapsedTime startTime={running.start_time} style={styles.runningText} />
+            <SwipeableRow onDelete={() => handleDelete(item)}>
+              <Pressable
+                style={styles.taskRow}
+                onPress={() => router.push(`/task/${item.id}`)}
+              >
+                <View style={[styles.colorDot, { backgroundColor: project?.color ?? '#999' }]} />
+                <View style={styles.taskInfo}>
+                  <Text style={styles.taskTitle}>{item.title}</Text>
+                  <Text style={styles.taskMeta}>
+                    {project?.name ?? 'Unknown project'}
+                    {item.due_date ? ` · ${formatDueDate(item.due_date)}` : ''}
+                    {item.total_time_seconds > 0
+                      ? ` · ${formatDuration(item.total_time_seconds)}`
+                      : ''}
+                  </Text>
                 </View>
-              ) : (
-                <StatusBadge status={item.status} />
-              )}
-            </Pressable>
+                {isRunning && running ? (
+                  <View style={styles.runningBadge}>
+                    <Text style={styles.runningDot}>●</Text>
+                    <ElapsedTime startTime={running.start_time} style={styles.runningText} />
+                  </View>
+                ) : (
+                  <StatusBadge status={item.status} />
+                )}
+              </Pressable>
+            </SwipeableRow>
           );
         }}
       />

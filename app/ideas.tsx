@@ -1,7 +1,8 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SwipeableRow } from '../components/SwipeableRow';
 import { formatDateTimeDMY } from '../lib/format';
 import { deleteIdea, listIdeas, listProjects, setIdeaProject } from '../lib/queries';
 import { useThemeColors, type ThemeColors } from '../lib/theme';
@@ -14,12 +15,16 @@ export default function IdeasScreen() {
   const styles = useMemo(() => createStyles(c), [c]);
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [search, setSearch] = useState('');
 
   const reload = useCallback(async () => {
-    const [ideaRows, projectRows] = await Promise.all([listIdeas(db), listProjects(db)]);
+    const [ideaRows, projectRows] = await Promise.all([
+      listIdeas(db, search || undefined),
+      listProjects(db),
+    ]);
     setIdeas(ideaRows);
     setProjects(projectRows);
-  }, [db]);
+  }, [db, search]);
 
   useFocusEffect(
     useCallback(() => {
@@ -83,6 +88,16 @@ export default function IdeasScreen() {
       contentContainerStyle={styles.content}
       data={ideas}
       keyExtractor={(i) => i.id}
+      ListHeaderComponent={
+        <TextInput
+          style={styles.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="🔍 Search ideas"
+          placeholderTextColor={c.textMuted}
+          clearButtonMode="while-editing"
+        />
+      }
       ListEmptyComponent={
         <Text style={styles.emptyText}>
           No ideas saved yet — record or type one from the mic button.
@@ -91,33 +106,30 @@ export default function IdeasScreen() {
       renderItem={({ item }) => {
         const project = item.project_id ? projectById.get(item.project_id) : null;
         return (
-          <View style={styles.row}>
-            <View style={styles.rowHeader}>
+          <SwipeableRow onDelete={() => handleDelete(item)}>
+            <View style={styles.row}>
               <Text style={styles.title}>{item.title}</Text>
-              <Pressable onPress={() => handleDelete(item)} hitSlop={8}>
-                <Text style={styles.deleteText}>Delete</Text>
-              </Pressable>
-            </View>
-            <Text style={styles.body}>{item.body}</Text>
+              <Text style={styles.body}>{item.body}</Text>
 
-            <Pressable style={styles.projectTag} onPress={() => handleSetProject(item)}>
-              {project ? (
-                <>
-                  <View style={[styles.colorDot, { backgroundColor: project.color }]} />
-                  <Text style={styles.projectTagText}>{project.name}</Text>
-                </>
-              ) : (
-                <Text style={styles.projectTagTextMuted}>+ Link to project</Text>
-              )}
-            </Pressable>
-
-            <View style={styles.footerRow}>
-              <Text style={styles.date}>{formatDateTimeDMY(item.created_at)}</Text>
-              <Pressable onPress={() => handlePromote(item)}>
-                <Text style={styles.promoteText}>Promote to Task →</Text>
+              <Pressable style={styles.projectTag} onPress={() => handleSetProject(item)}>
+                {project ? (
+                  <>
+                    <View style={[styles.colorDot, { backgroundColor: project.color }]} />
+                    <Text style={styles.projectTagText}>{project.name}</Text>
+                  </>
+                ) : (
+                  <Text style={styles.projectTagTextMuted}>+ Link to project</Text>
+                )}
               </Pressable>
+
+              <View style={styles.footerRow}>
+                <Text style={styles.date}>{formatDateTimeDMY(item.created_at)}</Text>
+                <Pressable onPress={() => handlePromote(item)}>
+                  <Text style={styles.promoteText}>Promote to Task →</Text>
+                </Pressable>
+              </View>
             </View>
-          </View>
+          </SwipeableRow>
         );
       }}
     />
@@ -128,6 +140,16 @@ function createStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     content: { padding: 16 },
+    searchInput: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      fontSize: 14,
+      color: c.text,
+      marginBottom: 12,
+    },
     emptyText: { textAlign: 'center', marginTop: 40, color: c.textMuted },
     row: {
       padding: 14,
@@ -135,9 +157,7 @@ function createStyles(c: ThemeColors) {
       backgroundColor: c.surface,
       marginBottom: 12,
     },
-    rowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-    title: { fontSize: 16, fontWeight: '600', flex: 1, marginRight: 12, color: c.text },
-    deleteText: { color: c.danger, fontSize: 13 },
+    title: { fontSize: 16, fontWeight: '600', color: c.text },
     body: { fontSize: 14, color: c.textSecondary, marginTop: 6, lineHeight: 20 },
     projectTag: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
     colorDot: { width: 8, height: 8, borderRadius: 4 },

@@ -461,7 +461,14 @@ export async function createIdea(
   return { id, title, body, project_id: projectId, created_at: now };
 }
 
-export async function listIdeas(db: SQLiteDatabase): Promise<Idea[]> {
+export async function listIdeas(db: SQLiteDatabase, search?: string): Promise<Idea[]> {
+  if (search?.trim()) {
+    return db.getAllAsync<Idea>(
+      'SELECT * FROM ideas WHERE LOWER(title) LIKE ? OR LOWER(body) LIKE ? ORDER BY created_at DESC',
+      `%${search.trim().toLowerCase()}%`,
+      `%${search.trim().toLowerCase()}%`
+    );
+  }
   return db.getAllAsync<Idea>('SELECT * FROM ideas ORDER BY created_at DESC');
 }
 

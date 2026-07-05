@@ -6,8 +6,9 @@ import { useThemeColors, type ThemeColors } from '../lib/theme';
 const ITEMS: {
   label: string;
   icon: string;
-  route: '/calendar' | '/reports' | '/ideas' | '/log-time' | '/needs-review' | '/settings';
+  route: '/today' | '/calendar' | '/reports' | '/ideas' | '/log-time' | '/needs-review' | '/settings';
 }[] = [
+  { label: 'Today', icon: '🏠', route: '/today' },
   { label: 'Calendar', icon: '📅', route: '/calendar' },
   { label: 'Time Report', icon: '📊', route: '/reports' },
   { label: 'Log Time', icon: '⏱️', route: '/log-time' },
