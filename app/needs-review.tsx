@@ -1,9 +1,9 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import * as FileSystem from 'expo-file-system/legacy';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SwipeableRow } from '../components/SwipeableRow';
+import { discardAudio } from '../lib/audioFile';
 import { formatDateTimeDMY } from '../lib/format';
 import { hapticWarning } from '../lib/haptics';
 import { listPendingCaptures, resolvePendingCapture } from '../lib/queries';
@@ -59,9 +59,7 @@ export default function NeedsReviewScreen() {
           style: 'destructive',
           onPress: async () => {
             hapticWarning();
-            if (capture.audio_uri) {
-              await FileSystem.deleteAsync(capture.audio_uri, { idempotent: true }).catch(() => {});
-            }
+            await discardAudio(capture.audio_uri);
             await resolvePendingCapture(db, capture.id);
             reload();
           },

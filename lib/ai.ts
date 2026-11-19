@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system/legacy';
+import { readAudioForUpload } from './audioFile';
 import type { Project } from './types';
 
 export interface ParsedTask {
@@ -47,15 +47,14 @@ export async function parseCaptureAudio(
   audioUri: string,
   openProjects: Project[]
 ): Promise<ParsedCapture> {
-  const base64Audio = await FileSystem.readAsStringAsync(audioUri, { encoding: 'base64' });
-  const mimeType = guessAudioMimeType(audioUri);
+  const { base64, mimeType } = await readAudioForUpload(audioUri);
   return callGemini(
     apiKey,
     [
       {
         text: 'Classify and parse the spoken note in this audio recording.',
       },
-      { inlineData: { mimeType, data: base64Audio } },
+      { inlineData: { mimeType, data: base64 } },
     ],
     openProjects
   );
@@ -187,23 +186,6 @@ If capture_type is "idea": fill idea_title (a short, clear title you generate) a
     due_date: isValidDateString(parsed.due_date) ? parsed.due_date : null,
     project_id: project?.id ?? null,
   };
-}
-
-function guessAudioMimeType(uri: string): string {
-  const ext = uri.split('.').pop()?.toLowerCase();
-  switch (ext) {
-    case 'm4a':
-    case 'mp4':
-      return 'audio/mp4';
-    case 'wav':
-      return 'audio/wav';
-    case 'aac':
-      return 'audio/aac';
-    case 'caf':
-      return 'audio/x-caf';
-    default:
-      return 'audio/mp4';
-  }
 }
 
 function todayIsoDate(): string {

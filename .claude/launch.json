@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web-build-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-s", "dist", "-l", "4173"],
+      "port": 4173
+    },
+    {
+      "name": "web-dev",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["expo", "start", "--web"],
+      "port": 8081
+    }
+  ]
+}

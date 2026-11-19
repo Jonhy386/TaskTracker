@@ -6,7 +6,6 @@ import {
   useAudioRecorderState,
 } from 'expo-audio';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as FileSystem from 'expo-file-system/legacy';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -22,7 +21,7 @@ import {
   View,
 } from 'react-native';
 import { ParseError, ParsedCapture, parseCaptureAudio, parseCaptureText } from '../lib/ai';
-import { generateId } from '../lib/id';
+import { discardAudio, saveAudioPermanently } from '../lib/audioFile';
 import {
   createIdea,
   createPendingCapture,
@@ -36,19 +35,6 @@ import type { Project } from '../lib/types';
 
 type Step = 'idle' | 'recording' | 'parsing';
 type Mode = 'voice' | 'type';
-
-async function saveAudioPermanently(tempUri: string): Promise<string> {
-  const dir = `${FileSystem.documentDirectory}voice-notes/`;
-  await FileSystem.makeDirectoryAsync(dir, { intermediates: true }).catch(() => {});
-  const permanentUri = `${dir}${generateId()}.m4a`;
-  await FileSystem.copyAsync({ from: tempUri, to: permanentUri });
-  return permanentUri;
-}
-
-async function discardAudio(uri: string | null) {
-  if (!uri) return;
-  await FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => {});
-}
 
 export default function CaptureScreen() {
   const db = useSQLiteContext();

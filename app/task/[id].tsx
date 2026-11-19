@@ -1,4 +1,4 @@
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from '../../components/DateTimePickerCompat';
 import { Picker } from '@react-native-picker/picker';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
