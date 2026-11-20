@@ -1,8 +1,9 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SwipeableRow } from '../components/SwipeableRow';
+import { showAlert } from '../lib/alert';
 import { formatDateTimeDMY } from '../lib/format';
 import { hapticWarning } from '../lib/haptics';
 import { deleteIdea, listIdeas, listProjects, setIdeaProject } from '../lib/queries';
@@ -36,7 +37,7 @@ export default function IdeasScreen() {
   const projectById = new Map(projects.map((p) => [p.id, p]));
 
   function handleDelete(idea: Idea) {
-    Alert.alert('Delete this idea?', idea.title, [
+    showAlert('Delete this idea?', idea.title, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
@@ -69,7 +70,7 @@ export default function IdeasScreen() {
         },
       });
     }
-    Alert.alert('Link to project', idea.title, [...buttons, { text: 'Cancel', style: 'cancel' }]);
+    showAlert('Link to project', idea.title, [...buttons, { text: 'Cancel', style: 'cancel' }]);
   }
 
   function handlePromote(idea: Idea) {

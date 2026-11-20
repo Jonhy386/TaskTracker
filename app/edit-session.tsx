@@ -2,7 +2,8 @@ import DateTimePicker from '../components/DateTimePickerCompat';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { showAlert } from '../lib/alert';
 import { formatDateTimeDMY } from '../lib/format';
 import { hapticWarning } from '../lib/haptics';
 import { deleteSession, getSessionById, updateSessionTimes } from '../lib/queries';
@@ -31,7 +32,7 @@ export default function EditSessionScreen() {
 
   async function handleSave() {
     if (endTime.getTime() <= startTime.getTime()) {
-      Alert.alert('Invalid times', 'End time must be after start time.');
+      showAlert('Invalid times', 'End time must be after start time.');
       return;
     }
     await updateSessionTimes(db, sessionId, startTime.toISOString(), endTime.toISOString());
@@ -39,7 +40,7 @@ export default function EditSessionScreen() {
   }
 
   function handleDelete() {
-    Alert.alert(
+    showAlert(
       'Delete this time entry?',
       'This removes it entirely and updates the task total (if any).',
       [

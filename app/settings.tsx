@@ -2,7 +2,6 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { showAlert } from '../lib/alert';
 import { closeProject, createProject, listProjects, updateProject } from '../lib/queries';
 import { getApiKey, setApiKey } from '../lib/secure';
 import { useThemeColors, type ThemeColors } from '../lib/theme';
@@ -45,7 +45,7 @@ export default function SettingsScreen() {
   async function handleSaveApiKey() {
     await setApiKey(apiKey.trim());
     setApiKeySaved(true);
-    Alert.alert('Saved', 'API key stored securely on this device.');
+    showAlert('Saved', 'API key saved on this device.');
   }
 
   async function handleAddProject() {
@@ -70,7 +70,7 @@ export default function SettingsScreen() {
   }
 
   async function handleCloseProject(project: Project) {
-    Alert.alert(
+    showAlert(
       `Close "${project.name}"?`,
       'All of its tasks will be marked cancelled. Projects can never be deleted, only closed.',
       [

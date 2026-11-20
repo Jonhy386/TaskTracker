@@ -4,7 +4,6 @@ import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rou
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -15,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { ElapsedTime } from '../../components/ElapsedTime';
+import { showAlert } from '../../lib/alert';
 import {
   formatDateDMY,
   formatDateTimeDMY,
@@ -110,7 +110,7 @@ export default function TaskDetailScreen() {
   }
 
   async function handleDelete() {
-    Alert.alert('Delete task?', 'This will also remove its tracked time sessions.', [
+    showAlert('Delete task?', 'This will also remove its tracked time sessions.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
@@ -126,7 +126,7 @@ export default function TaskDetailScreen() {
 
   async function handleSaveEdits() {
     if (!title.trim() || !projectId) {
-      Alert.alert('Missing fields', 'Title and project are required.');
+      showAlert('Missing fields', 'Title and project are required.');
       return;
     }
     await updateTask(db, task!.id, {

@@ -10,7 +10,6 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -21,6 +20,7 @@ import {
   View,
 } from 'react-native';
 import { ParseError, ParsedCapture, parseCaptureAudio, parseCaptureText } from '../lib/ai';
+import { showAlert } from '../lib/alert';
 import { discardAudio, saveAudioPermanently } from '../lib/audioFile';
 import {
   createIdea,
@@ -68,7 +68,7 @@ export default function CaptureScreen() {
     const apiKey = await getApiKey();
     if (!apiKey) {
       setStep('idle');
-      Alert.alert('No API key', 'Add your Gemini API key in Settings first.');
+      showAlert('No API key', 'Add your Gemini API key in Settings first.');
       return;
     }
     setStep('parsing');
@@ -92,7 +92,7 @@ export default function CaptureScreen() {
   async function handleStartRecording() {
     const { granted } = await requestRecordingPermissionsAsync();
     if (!granted) {
-      Alert.alert(
+      showAlert(
         'Microphone access needed',
         'Enable microphone access for TaskTracker in iOS Settings to record voice notes.'
       );
@@ -109,7 +109,7 @@ export default function CaptureScreen() {
     setStep('parsing');
     if (!tempUri) {
       setStep('idle');
-      Alert.alert('Recording failed', 'No audio was captured — please try again.');
+      showAlert('Recording failed', 'No audio was captured — please try again.');
       return;
     }
     const permanentUri = await saveAudioPermanently(tempUri);
@@ -120,7 +120,7 @@ export default function CaptureScreen() {
     if (!rawText.trim()) return;
     const apiKey = await getApiKey();
     if (!apiKey) {
-      Alert.alert('No API key', 'Add your Gemini API key in Settings first.');
+      showAlert('No API key', 'Add your Gemini API key in Settings first.');
       return;
     }
     setStep('parsing');
@@ -146,7 +146,7 @@ export default function CaptureScreen() {
     const finalProjectId = parsed.project_id ?? projects[0]?.id ?? null;
     if (!finalProjectId) {
       setStep('idle');
-      Alert.alert('No open projects', 'Add a project in Settings before creating tasks.');
+      showAlert('No open projects', 'Add a project in Settings before creating tasks.');
       return;
     }
     await createTask(db, {
@@ -167,11 +167,11 @@ export default function CaptureScreen() {
     setStep('idle');
     if (pendingCaptureId) {
       // Already has a PendingCapture from the first failed attempt — don't duplicate it.
-      Alert.alert('Still could not parse that', 'It remains in Needs Review for another try later.');
+      showAlert('Still could not parse that', 'It remains in Needs Review for another try later.');
       return;
     }
     await createPendingCapture(db, textFallback, reason, audioUri);
-    Alert.alert(
+    showAlert(
       'Could not parse that',
       'It was saved to Needs Review so nothing is lost. You can retry it from there.',
       [

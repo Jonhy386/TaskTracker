@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Suspense } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import WebAlertHost from '../components/WebAlertHost';
 import { DATABASE_NAME, migrateDbIfNeeded } from '../lib/db';
 import { useThemeColors } from '../lib/theme';
 
@@ -56,6 +57,7 @@ export default function RootLayout() {
         <StatusBar style="auto" />
       </SQLiteProvider>
     </Suspense>
+    <WebAlertHost />
     </GestureHandlerRootView>
   );
 }

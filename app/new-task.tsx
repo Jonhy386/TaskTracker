@@ -4,7 +4,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,6 +13,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { showAlert } from '../lib/alert';
 import { formatDateDMY } from '../lib/format';
 import { createTask, deleteIdea, listProjects } from '../lib/queries';
 import { useThemeColors, type ThemeColors } from '../lib/theme';
@@ -50,11 +50,11 @@ export default function NewTaskScreen() {
 
   async function handleSave() {
     if (!title.trim()) {
-      Alert.alert('Title required', 'Please enter a task title.');
+      showAlert('Title required', 'Please enter a task title.');
       return;
     }
     if (!projectId) {
-      Alert.alert('Project required', 'Please select a project.');
+      showAlert('Project required', 'Please select a project.');
       return;
     }
     setSaving(true);

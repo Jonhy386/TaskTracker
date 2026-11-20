@@ -2,10 +2,11 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Stack } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ElapsedTime } from '../components/ElapsedTime';
 import { SwipeableRow } from '../components/SwipeableRow';
+import { showAlert } from '../lib/alert';
 import { formatDuration, formatDueDate } from '../lib/format';
 import { hapticImpact, hapticSuccess, hapticWarning } from '../lib/haptics';
 import {
@@ -20,7 +21,7 @@ import { useThemeColors, type ThemeColors } from '../lib/theme';
 import type { Project, Task, TaskStatus, TimeSession } from '../lib/types';
 
 const STATUS_FILTERS: { label: string; value: TaskStatus | null }[] = [
-  { label: 'All', value: null },
+  { label: 'Active', value: null },
   { label: 'Not started', value: 'not_started' },
   { label: 'In progress', value: 'in_progress' },
   { label: 'Done', value: 'done' },
@@ -50,7 +51,13 @@ export default function TasksScreen() {
       listProjects(db),
       getRunningSession(db),
     ]);
-    setTasks(taskRows);
+    // The "Active" filter (no explicit status selected) hides done/cancelled
+    // tasks by default; pick "Done" or "Cancelled" above to see them.
+    const visibleTasks =
+      statusFilter === null
+        ? taskRows.filter((t) => t.status !== 'done' && t.status !== 'cancelled')
+        : taskRows;
+    setTasks(visibleTasks);
     setProjects(projectRows);
     setRunning(runningSession);
   }, [db, projectFilter, statusFilter, search]);
@@ -64,7 +71,7 @@ export default function TasksScreen() {
   const projectById = new Map(projects.map((p) => [p.id, p]));
 
   function handleDelete(task: Task) {
-    Alert.alert('Delete task?', `"${task.title}" and its tracked time will be removed.`, [
+    showAlert('Delete task?', `"${task.title}" and its tracked time will be removed.`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',

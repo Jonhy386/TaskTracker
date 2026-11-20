@@ -14,7 +14,8 @@ if (!fs.existsSync(dist)) {
   process.exit(1);
 }
 
-for (const file of fs.readdirSync(src)) {
+const copied = fs.readdirSync(src);
+for (const file of copied) {
   fs.copyFileSync(path.join(src, file), path.join(dist, file));
 }
 
@@ -34,4 +35,4 @@ if (!html.includes('rel="manifest"')) {
   fs.writeFileSync(indexPath, html);
 }
 
-console.log('Copied _headers, _redirects, manifest.json, icon.png into dist/ and linked the manifest.');
+console.log(`Copied ${copied.join(', ')} into dist/ and linked the manifest.`);

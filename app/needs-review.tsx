@@ -1,8 +1,9 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SwipeableRow } from '../components/SwipeableRow';
+import { showAlert } from '../lib/alert';
 import { discardAudio } from '../lib/audioFile';
 import { formatDateTimeDMY } from '../lib/format';
 import { hapticWarning } from '../lib/haptics';
@@ -49,7 +50,7 @@ export default function NeedsReviewScreen() {
   }
 
   function handleDiscard(capture: PendingCapture) {
-    Alert.alert(
+    showAlert(
       'Discard this note?',
       capture.audio_uri ? 'This voice note will be deleted.' : capture.raw_text,
       [
