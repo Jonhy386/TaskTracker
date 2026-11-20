@@ -4,22 +4,39 @@ import { StatusBar } from 'expo-status-bar';
 import { Suspense } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import SignInScreen from '../components/SignInScreen';
+import SyncManager from '../components/SyncManager';
 import WebAlertHost from '../components/WebAlertHost';
 import { DATABASE_NAME, migrateDbIfNeeded } from '../lib/db';
 import { useThemeColors } from '../lib/theme';
+import { useSession } from '../lib/useSession';
 
 export default function RootLayout() {
   const c = useThemeColors();
+  const { session, loading } = useSession();
+
+  const spinner = (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.background }}>
+      <ActivityIndicator />
+    </View>
+  );
+
+  if (loading) {
+    return spinner;
+  }
+
+  if (!session) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SignInScreen />
+        <WebAlertHost />
+      </GestureHandlerRootView>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-    <Suspense
-      fallback={
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.background }}>
-          <ActivityIndicator />
-        </View>
-      }
-    >
+    <Suspense fallback={spinner}>
       <SQLiteProvider databaseName={DATABASE_NAME} onInit={migrateDbIfNeeded} useSuspense>
         <Stack
           screenOptions={{
@@ -55,6 +72,7 @@ export default function RootLayout() {
           <Stack.Screen name="menu" options={{ title: 'Menu', presentation: 'modal' }} />
         </Stack>
         <StatusBar style="auto" />
+        <SyncManager userId={session.user.id} />
       </SQLiteProvider>
     </Suspense>
     <WebAlertHost />

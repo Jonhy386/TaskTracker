@@ -10,7 +10,7 @@ const DEFAULT_PROJECTS = [
 ];
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
-  const DATABASE_VERSION = 5;
+  const DATABASE_VERSION = 6;
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
   let currentVersion = row?.user_version ?? 0;
   if (currentVersion >= DATABASE_VERSION) {
@@ -127,6 +127,22 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
   if (currentVersion === 4) {
     await db.execAsync(`ALTER TABLE ideas ADD COLUMN project_id TEXT;`);
     currentVersion = 5;
+  }
+
+  if (currentVersion === 5) {
+    // Queue of local writes waiting to be pushed to Supabase. Keyed by
+    // "table:row_id" so repeated edits before the next sync collapse into
+    // one pending op (INSERT OR REPLACE) instead of piling up.
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS sync_outbox (
+        key TEXT PRIMARY KEY NOT NULL,
+        table_name TEXT NOT NULL,
+        row_id TEXT NOT NULL,
+        op TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+    currentVersion = 6;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

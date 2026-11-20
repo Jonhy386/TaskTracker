@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { generateId } from './id';
+import { enqueueSync } from './syncOutbox';
 import type {
   Idea,
   PendingCapture,
@@ -31,6 +32,7 @@ export async function createProject(
     name,
     color
   );
+  await enqueueSync(db, 'projects', id, 'upsert');
   return { id, name, color, is_closed: 0 };
 }
 
@@ -44,9 +46,14 @@ export async function updateProject(
   const setClause = entries.map(([k]) => `${k} = ?`).join(', ');
   const values = entries.map(([, v]) => v as string);
   await db.runAsync(`UPDATE projects SET ${setClause} WHERE id = ?`, ...values, id);
+  await enqueueSync(db, 'projects', id, 'upsert');
 }
 
 export async function closeProject(db: SQLiteDatabase, projectId: string): Promise<void> {
+  const affectedTasks = await db.getAllAsync<{ id: string }>(
+    "SELECT id FROM tasks WHERE project_id = ? AND status != 'cancelled'",
+    projectId
+  );
   await db.withTransactionAsync(async () => {
     await db.runAsync('UPDATE projects SET is_closed = 1 WHERE id = ?', projectId);
     await db.runAsync(
@@ -55,6 +62,10 @@ export async function closeProject(db: SQLiteDatabase, projectId: string): Promi
       projectId
     );
   });
+  await enqueueSync(db, 'projects', projectId, 'upsert');
+  for (const task of affectedTasks) {
+    await enqueueSync(db, 'tasks', task.id, 'upsert');
+  }
 }
 
 // --- Tasks ---
@@ -113,6 +124,7 @@ export async function createTask(
     now,
     now
   );
+  await enqueueSync(db, 'tasks', id, 'upsert');
   return {
     id,
     title: fields.title,
@@ -141,13 +153,22 @@ export async function updateTask(
     new Date().toISOString(),
     id
   );
+  await enqueueSync(db, 'tasks', id, 'upsert');
 }
 
 export async function deleteTask(db: SQLiteDatabase, id: string): Promise<void> {
+  const affectedSessions = await db.getAllAsync<{ id: string }>(
+    'SELECT id FROM time_sessions WHERE task_id = ?',
+    id
+  );
   await db.withTransactionAsync(async () => {
     await db.runAsync('DELETE FROM time_sessions WHERE task_id = ?', id);
     await db.runAsync('DELETE FROM tasks WHERE id = ?', id);
   });
+  for (const session of affectedSessions) {
+    await enqueueSync(db, 'time_sessions', session.id, 'delete');
+  }
+  await enqueueSync(db, 'tasks', id, 'delete');
 }
 
 export async function markTaskDone(db: SQLiteDatabase, id: string): Promise<void> {
@@ -170,6 +191,7 @@ async function recomputeTotalTime(db: SQLiteDatabase, taskId: string): Promise<v
     row?.total ?? 0,
     taskId
   );
+  await enqueueSync(db, 'tasks', taskId, 'upsert');
 }
 
 async function stopSession(db: SQLiteDatabase, session: TimeSession): Promise<void> {
@@ -184,6 +206,7 @@ async function stopSession(db: SQLiteDatabase, session: TimeSession): Promise<vo
     durationSeconds,
     session.id
   );
+  await enqueueSync(db, 'time_sessions', session.id, 'upsert');
   if (session.task_id) {
     await recomputeTotalTime(db, session.task_id);
   }
@@ -214,6 +237,7 @@ export async function startTimer(db: SQLiteDatabase, taskId: string): Promise<Ti
       await updateTask(db, taskId, { status: 'in_progress' });
     }
   });
+  await enqueueSync(db, 'time_sessions', id, 'upsert');
 
   return {
     id,
@@ -245,6 +269,7 @@ export async function startProjectTimer(
       startTime
     );
   });
+  await enqueueSync(db, 'time_sessions', id, 'upsert');
 
   return {
     id,
@@ -288,6 +313,7 @@ export async function getSessionById(
 export async function deleteSession(db: SQLiteDatabase, id: string): Promise<void> {
   const session = await getSessionById(db, id);
   await db.runAsync('DELETE FROM time_sessions WHERE id = ?', id);
+  await enqueueSync(db, 'time_sessions', id, 'delete');
   if (session?.task_id) {
     await recomputeTotalTime(db, session.task_id);
   }
@@ -308,6 +334,7 @@ export async function assignSessionToTask(
   taskId: string
 ): Promise<void> {
   await db.runAsync('UPDATE time_sessions SET task_id = ? WHERE id = ?', taskId, sessionId);
+  await enqueueSync(db, 'time_sessions', sessionId, 'upsert');
   await recomputeTotalTime(db, taskId);
 }
 
@@ -331,6 +358,7 @@ export async function updateSessionTimes(
     durationSeconds,
     sessionId
   );
+  await enqueueSync(db, 'time_sessions', sessionId, 'upsert');
   if (session?.task_id) {
     await recomputeTotalTime(db, session.task_id);
   }
@@ -458,6 +486,7 @@ export async function createIdea(
     projectId,
     now
   );
+  await enqueueSync(db, 'ideas', id, 'upsert');
   return { id, title, body, project_id: projectId, created_at: now };
 }
 
@@ -478,8 +507,10 @@ export async function setIdeaProject(
   projectId: string | null
 ): Promise<void> {
   await db.runAsync('UPDATE ideas SET project_id = ? WHERE id = ?', projectId, ideaId);
+  await enqueueSync(db, 'ideas', ideaId, 'upsert');
 }
 
 export async function deleteIdea(db: SQLiteDatabase, id: string): Promise<void> {
   await db.runAsync('DELETE FROM ideas WHERE id = ?', id);
+  await enqueueSync(db, 'ideas', id, 'delete');
 }
