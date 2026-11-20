@@ -1,12 +1,13 @@
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
-import { Suspense } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { Suspense, useEffect } from 'react';
+import { ActivityIndicator, Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import SignInScreen from '../components/SignInScreen';
 import SyncManager from '../components/SyncManager';
 import WebAlertHost from '../components/WebAlertHost';
+import { checkCaptureIntent } from '../lib/captureIntent';
 import { DATABASE_NAME, migrateDbIfNeeded } from '../lib/db';
 import { useThemeColors } from '../lib/theme';
 import { useSession } from '../lib/useSession';
@@ -14,6 +15,25 @@ import { useSession } from '../lib/useSession';
 export default function RootLayout() {
   const c = useThemeColors();
   const { session, loading } = useSession();
+  const router = useRouter();
+  const userId = session?.user.id;
+
+  // See lib/captureIntent.ts - an iOS Shortcut bound to the Action Button
+  // can signal "open Quick Add and start recording" through the database
+  // (webapp:// launches can't carry a URL path). Re-check on every
+  // focus/visibilitychange too, since re-launching often just brings an
+  // already-running instance back to the foreground instead of remounting.
+  useEffect(() => {
+    if (!userId || Platform.OS !== 'web') return;
+    checkCaptureIntent(userId, router);
+    const onFocus = () => checkCaptureIntent(userId, router);
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+    };
+  }, [userId, router]);
 
   const spinner = (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.background }}>

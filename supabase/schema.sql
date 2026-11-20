@@ -57,19 +57,34 @@
                           auth_key text not null,
                           created_at timestamptz not null default now()
                         );
-                        
+
+                        -- "Please open Quick Add and start recording" signal, written by the
+                        -- request-capture Edge Function (hit from an iOS Shortcut bound to the
+                        -- Action Button) and consumed by the app on launch/foreground - see
+                        -- lib/captureIntent.ts. Works around iOS dropping the URL path when a
+                        -- Shortcut opens an installed Home Screen web app via webapp://, so the
+                        -- "open straight into recording" signal travels through the database
+                        -- instead of the URL.
+                        create table if not exists capture_intents (
+                          id uuid primary key default gen_random_uuid(),
+                          user_id uuid not null references auth.users (id) on delete cascade,
+                          created_at timestamptz not null default now()
+                        );
+
                         create index if not exists idx_tasks_user on tasks (user_id);
                         create index if not exists idx_tasks_project on tasks (project_id);
                         create index if not exists idx_ideas_user on ideas (user_id);
                         create index if not exists idx_sessions_user on time_sessions (user_id);
                         create index if not exists idx_push_subs_user on push_subscriptions (user_id);
-                        
+                        create index if not exists idx_capture_intents_user on capture_intents (user_id);
+
                         alter table projects enable row level security;
                         alter table tasks enable row level security;
                         alter table ideas enable row level security;
                         alter table time_sessions enable row level security;
                         alter table push_subscriptions enable row level security;
-                        
+                        alter table capture_intents enable row level security;
+
                         create policy "own rows" on projects for all
                           using (auth.uid() = user_id) with check (auth.uid() = user_id);
                         create policy "own rows" on tasks for all
@@ -79,6 +94,8 @@
                         create policy "own rows" on time_sessions for all
                           using (auth.uid() = user_id) with check (auth.uid() = user_id);
                         create policy "own rows" on push_subscriptions for all
+                          using (auth.uid() = user_id) with check (auth.uid() = user_id);
+                        create policy "own rows" on capture_intents for all
                           using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
                         -- Daily due-date reminder push, run once the send-reminders Edge
