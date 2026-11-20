@@ -31,6 +31,7 @@
     "@types/react": "~19.1.10",
     "eas-cli": "^20.5.1",
     "typescript": "~5.9.2",
+    "web-push": "^4.0.0",
     "wrangler": "^4.165.0"
   },
   "scripts": {
@@ -41,7 +42,8 @@
     "build:web": "expo export -p web && node scripts/postexport-web.js",
     "serve:web": "npx serve dist",
     "deploy": "npm run build:web && wrangler deploy",
-    "preview": "npm run build:web && wrangler dev"
+    "preview": "npm run build:web && wrangler dev",
+    "send-test-push": "node scripts/send-test-push.js"
   },
   "private": true
 }

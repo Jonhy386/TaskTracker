@@ -2,6 +2,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import {
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,10 +11,18 @@ import {
   View,
 } from 'react-native';
 import { showAlert } from '../lib/alert';
+import {
+  getPushPermissionState,
+  isPushSupported,
+  subscribeToPush,
+  unsubscribeFromPush,
+  type PushSupportState,
+} from '../lib/push';
 import { closeProject, createProject, listProjects, updateProject } from '../lib/queries';
 import { getApiKey, setApiKey } from '../lib/secure';
 import { useThemeColors, type ThemeColors } from '../lib/theme';
 import type { Project } from '../lib/types';
+import { useSession } from '../lib/useSession';
 
 const PALETTE = ['#4F46E5', '#059669', '#DC2626', '#D97706', '#7C3AED', '#0891B2', '#DB2777'];
 
@@ -21,6 +30,7 @@ export default function SettingsScreen() {
   const db = useSQLiteContext();
   const theme = useThemeColors();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const { session } = useSession();
   const [apiKey, setApiKeyState] = useState('');
   const [apiKeySaved, setApiKeySaved] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -28,12 +38,15 @@ export default function SettingsScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [editingColor, setEditingColor] = useState('');
+  const [pushState, setPushState] = useState<PushSupportState>('unsupported');
+  const [pushBusy, setPushBusy] = useState(false);
 
   const reload = useCallback(async () => {
     const [key, projectRows] = await Promise.all([getApiKey(), listProjects(db)]);
     setApiKeyState(key ?? '');
     setApiKeySaved(!!key);
     setProjects(projectRows);
+    setPushState(getPushPermissionState());
   }, [db]);
 
   useFocusEffect(
@@ -41,6 +54,32 @@ export default function SettingsScreen() {
       reload();
     }, [reload])
   );
+
+  async function handleEnableNotifications() {
+    if (!session) return;
+    setPushBusy(true);
+    try {
+      await subscribeToPush(session.user.id);
+      setPushState(getPushPermissionState());
+      showAlert('Notifications enabled', 'This device is now registered for push notifications.');
+    } catch (err) {
+      showAlert('Could not enable notifications', err instanceof Error ? err.message : String(err));
+    } finally {
+      setPushBusy(false);
+    }
+  }
+
+  async function handleDisableNotifications() {
+    setPushBusy(true);
+    try {
+      await unsubscribeFromPush();
+      showAlert('Notifications disabled', 'This device will no longer receive push notifications.');
+    } catch (err) {
+      showAlert('Could not disable notifications', err instanceof Error ? err.message : String(err));
+    } finally {
+      setPushBusy(false);
+    }
+  }
 
   async function handleSaveApiKey() {
     await setApiKey(apiKey.trim());
@@ -89,7 +128,33 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.sectionTitle}>Google Gemini API Key</Text>
+      <Text style={styles.sectionTitle}>Notifications</Text>
+      {Platform.OS !== 'web' ? (
+        <Text style={styles.helperText}>Push notifications are only available on the web app for now.</Text>
+      ) : !isPushSupported() ? (
+        <Text style={styles.helperText}>This browser doesn't support push notifications.</Text>
+      ) : pushState === 'denied' ? (
+        <Text style={styles.helperText}>
+          Notifications are blocked for this site. Re-enable them in your browser's site settings to
+          turn them back on here.
+        </Text>
+      ) : pushState === 'granted' ? (
+        <>
+          <Text style={styles.helperText}>This device is registered to receive push notifications.</Text>
+          <Pressable style={styles.saveButton} onPress={handleDisableNotifications} disabled={pushBusy}>
+            <Text style={styles.saveButtonText}>{pushBusy ? 'Working...' : 'Disable on this device'}</Text>
+          </Pressable>
+        </>
+      ) : (
+        <>
+          <Text style={styles.helperText}>Get a notification on this device for task reminders.</Text>
+          <Pressable style={styles.saveButton} onPress={handleEnableNotifications} disabled={pushBusy || !session}>
+            <Text style={styles.saveButtonText}>{pushBusy ? 'Working...' : 'Enable notifications'}</Text>
+          </Pressable>
+        </>
+      )}
+
+      <Text style={[styles.sectionTitle, styles.projectsHeader]}>Google Gemini API Key</Text>
       <Text style={styles.helperText}>
         Used to parse free-text/voice input into structured tasks (free tier). Get one at
         aistudio.google.com/apikey. Stored in the device Keychain. Leave blank to skip AI parsing

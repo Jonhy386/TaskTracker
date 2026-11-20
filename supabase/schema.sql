@@ -80,3 +80,37 @@
                           using (auth.uid() = user_id) with check (auth.uid() = user_id);
                         create policy "own rows" on push_subscriptions for all
                           using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+                        -- Daily due-date reminder push, run once the send-reminders Edge
+                        -- Function (supabase/functions/send-reminders) is deployed with its
+                        -- CRON_SECRET/VAPID_* secrets set. Fires at 08:45 UTC, which is 08:45
+                        -- Lisbon time in winter (WET, UTC+0) and 09:45 in summer (WEST, UTC+1,
+                        -- late March-late October) - pg_cron has no per-job DST awareness, so
+                        -- the clock time it actually lands at drifts by an hour across the
+                        -- year. Adjust the "45 8 * * *" below (or re-run this block with a
+                        -- different time) if that matters to you.
+                        --
+                        -- Replace your-project-ref and your-cron-secret below with your own
+                        -- project ref and the same CRON_SECRET value set on the function -
+                        -- never commit the real secret to this file.
+                        create extension if not exists pg_cron;
+                        create extension if not exists pg_net;
+
+                        select cron.schedule(
+                          'daily-task-reminders',
+                          '45 8 * * *',
+                          $$
+                          select net.http_post(
+                            url := 'https://your-project-ref.supabase.co/functions/v1/send-reminders',
+                            headers := jsonb_build_object(
+                              'Content-Type', 'application/json',
+                              'x-cron-secret', 'your-cron-secret'
+                            ),
+                            body := '{}'::jsonb
+                          );
+                          $$
+                        );
+
+                        -- To change the schedule later: select cron.unschedule('daily-task-reminders');
+                        -- then re-run the cron.schedule call above with a new time.
+                        -- To check it's firing: select * from cron.job_run_details order by start_time desc limit 5;
