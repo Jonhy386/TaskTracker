@@ -41,10 +41,11 @@ export default function CaptureScreen() {
   const router = useRouter();
   const c = useThemeColors();
   const styles = useMemo(() => createStyles(c), [c]);
-  const { prefillText, prefillAudioUri, pendingCaptureId } = useLocalSearchParams<{
+  const { prefillText, prefillAudioUri, pendingCaptureId, autostart } = useLocalSearchParams<{
     prefillText?: string;
     prefillAudioUri?: string;
     pendingCaptureId?: string;
+    autostart?: string;
   }>();
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -52,6 +53,7 @@ export default function CaptureScreen() {
   const [step, setStep] = useState<Step>('idle');
   const [rawText, setRawText] = useState(prefillText ? decodeURIComponent(prefillText) : '');
   const startedAudioRetry = useRef(false);
+  const startedAutostart = useRef(false);
 
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(recorder, 200);
@@ -88,6 +90,18 @@ export default function CaptureScreen() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillAudioUri]);
+
+  // ?autostart=1 — for launching straight into recording from outside the app
+  // (e.g. an iOS Shortcut bound to the Action Button). Waits for the API key
+  // check so it doesn't try to record into a screen that's about to show the
+  // "add your key" warning instead.
+  useEffect(() => {
+    if (autostart === '1' && hasApiKey === true && mode === 'voice' && !startedAutostart.current) {
+      startedAutostart.current = true;
+      handleStartRecording();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autostart, hasApiKey, mode]);
 
   async function handleStartRecording() {
     const { granted } = await requestRecordingPermissionsAsync();
