@@ -7,7 +7,9 @@ export default function SignInScreen() {
   const c = useThemeColors();
   const styles = createStyles(c);
   const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
   const [sending, setSending] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,14 +31,58 @@ export default function SignInScreen() {
     setSent(true);
   }
 
+  async function handleVerify() {
+    const trimmedCode = code.trim();
+    if (!trimmedCode) return;
+    setVerifying(true);
+    setError(null);
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      email: email.trim(),
+      token: trimmedCode,
+      type: 'email',
+    });
+    setVerifying(false);
+    if (verifyError) {
+      setError(verifyError.message);
+    }
+    // On success, useSession's onAuthStateChange picks up the new session
+    // automatically and this screen unmounts.
+  }
+
   if (sent) {
     return (
       <View style={styles.container}>
         <Text style={styles.title}>Check your email</Text>
         <Text style={styles.subtitle}>
-          Tap the sign-in link sent to {email.trim()} — it brings you right back here, signed in.
+          Sent to {email.trim()}. On a Home Screen app, type the 6-digit code below instead of
+          tapping the link — the link opens in a separate browser session that won't carry over.
         </Text>
-        <Pressable style={styles.linkButton} onPress={() => setSent(false)}>
+        <TextInput
+          style={[styles.input, styles.codeInput]}
+          value={code}
+          onChangeText={setCode}
+          placeholder="123456"
+          placeholderTextColor={c.textMuted}
+          keyboardType="number-pad"
+          autoFocus
+          onSubmitEditing={handleVerify}
+        />
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        <Pressable
+          style={[styles.button, (!code.trim() || verifying) && styles.buttonDisabled]}
+          onPress={handleVerify}
+          disabled={!code.trim() || verifying}
+        >
+          {verifying ? <ActivityIndicator color={c.accentText} /> : <Text style={styles.buttonText}>Verify code</Text>}
+        </Pressable>
+        <Pressable
+          style={styles.linkButton}
+          onPress={() => {
+            setSent(false);
+            setCode('');
+            setError(null);
+          }}
+        >
           <Text style={styles.linkButtonText}>Use a different email</Text>
         </Pressable>
       </View>
@@ -98,6 +144,7 @@ function createStyles(c: ThemeColors) {
       color: c.text,
       marginBottom: 16,
     },
+    codeInput: { textAlign: 'center', letterSpacing: 4, fontSize: 20 },
     error: { color: c.danger, fontSize: 13, marginBottom: 12, textAlign: 'center' },
     button: {
       width: '100%',
