@@ -21,6 +21,21 @@ for (const file of copied) {
 
 const indexPath = path.join(dist, 'index.html');
 let html = fs.readFileSync(indexPath, 'utf8');
+let changed = false;
+
+// Without viewport-fit=cover, iOS never reports a non-zero
+// env(safe-area-inset-*) - which is exactly what react-native-safe-area-context
+// reads on web - so useSafeAreaInsets() silently returns all zeros on the
+// Home Screen PWA and any safe-area padding (e.g. the tab bar sitting clear
+// of the home indicator) has nothing real to measure.
+if (!html.includes('viewport-fit=cover')) {
+  html = html.replace(
+    /<meta name="viewport" content="[^"]*"\s*\/?>/,
+    '<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />'
+  );
+  changed = true;
+}
+
 const extraHead = [
   '<link rel="manifest" href="/manifest.json">',
   '<meta name="theme-color" content="#4F46E5">',
@@ -32,6 +47,10 @@ const extraHead = [
 
 if (!html.includes('rel="manifest"')) {
   html = html.replace('</head>', `    ${extraHead}\n  </head>`);
+  changed = true;
+}
+
+if (changed) {
   fs.writeFileSync(indexPath, html);
 }
 
