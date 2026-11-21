@@ -27,6 +27,9 @@ export async function checkCaptureIntent(userId: string, router: Router): Promis
 
   const ageMs = Date.now() - new Date(latest).getTime();
   if (ageMs <= FRESH_WINDOW_MS) {
-    router.replace('/capture?autostart=1');
+    // push, not replace - this often fires as the very first navigation
+    // after a fresh launch, so replace would leave nothing underneath to
+    // go back to and no way to dismiss the screen.
+    router.push('/capture?autostart=1');
   }
 }

@@ -5,7 +5,7 @@ import {
   useAudioRecorder,
   useAudioRecorderState,
 } from 'expo-audio';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -57,6 +57,21 @@ export default function CaptureScreen() {
 
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(recorder, 200);
+
+  // This screen can be reached with nothing underneath it in the stack (a
+  // cold launch triggered by the Action Button lands here before Today has
+  // ever mounted), so router.back() alone isn't always safe - fall back to
+  // Today itself when there's nothing to go back to.
+  function dismiss() {
+    if (step === 'recording') {
+      recorder.stop().catch(() => {});
+    }
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
+    }
+  }
 
   useEffect(() => {
     Promise.all([getApiKey(), listProjects(db, false)]).then(([key, rows]) => {
@@ -153,7 +168,7 @@ export default function CaptureScreen() {
         await resolvePendingCapture(db, pendingCaptureId);
       }
       await discardAudio(audioUri);
-      router.back();
+      dismiss();
       return;
     }
 
@@ -173,7 +188,7 @@ export default function CaptureScreen() {
       await resolvePendingCapture(db, pendingCaptureId);
     }
     await discardAudio(audioUri);
-    router.back();
+    dismiss();
   }
 
   async function handleParseFailure(err: unknown, textFallback: string, audioUri: string | null) {
@@ -198,6 +213,15 @@ export default function CaptureScreen() {
   if (hasApiKey === false) {
     return (
       <View style={styles.container}>
+        <Stack.Screen
+          options={{
+            headerLeft: () => (
+              <Pressable onPress={dismiss} hitSlop={8}>
+                <Text style={styles.closeText}>Cancel</Text>
+              </Pressable>
+            ),
+          }}
+        />
         <Text style={styles.warning}>
           Add your Gemini API key in Settings before using quick add.
         </Text>
@@ -223,6 +247,15 @@ export default function CaptureScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
+      <Stack.Screen
+        options={{
+          headerLeft: () => (
+            <Pressable onPress={dismiss} hitSlop={8}>
+              <Text style={styles.closeText}>Cancel</Text>
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
@@ -299,6 +332,7 @@ function createStyles(c: ThemeColors) {
     centerContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
     hint: { fontSize: 13, color: c.textSecondary, marginBottom: 16, textAlign: 'center' },
     warning: { color: c.warning, fontSize: 14, marginBottom: 16 },
+    closeText: { fontSize: 16, color: c.link, paddingHorizontal: 8 },
     input: {
       borderWidth: 1,
       borderColor: c.border,
