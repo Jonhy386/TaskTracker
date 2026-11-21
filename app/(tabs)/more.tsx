@@ -2,25 +2,22 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { listPendingCaptures } from '../lib/queries';
-import { useThemeColors, type ThemeColors } from '../lib/theme';
+import { listPendingCaptures } from '../../lib/queries';
+import { useThemeColors, type ThemeColors } from '../../lib/theme';
 
 const ITEMS: {
   label: string;
   icon: string;
-  route: '/' | '/tasks' | '/calendar' | '/reports' | '/ideas' | '/log-time' | '/needs-review' | '/settings';
+  route: '/calendar' | '/reports' | '/log-time' | '/needs-review' | '/settings';
 }[] = [
-  { label: 'Today', icon: '🏠', route: '/' },
-  { label: 'Tasks', icon: '✅', route: '/tasks' },
   { label: 'Calendar', icon: '📅', route: '/calendar' },
   { label: 'Time Report', icon: '📊', route: '/reports' },
   { label: 'Log Time', icon: '⏱️', route: '/log-time' },
-  { label: 'Ideas', icon: '💡', route: '/ideas' },
   { label: 'Needs Review', icon: '📋', route: '/needs-review' },
   { label: 'Settings', icon: '⚙️', route: '/settings' },
 ];
 
-export default function MenuScreen() {
+export default function MoreScreen() {
   const router = useRouter();
   const db = useSQLiteContext();
   const c = useThemeColors();
@@ -36,14 +33,7 @@ export default function MenuScreen() {
   return (
     <View style={styles.container}>
       {ITEMS.map((item) => (
-        <Pressable
-          key={item.route}
-          style={styles.row}
-          onPress={() => {
-            router.back();
-            router.push(item.route);
-          }}
-        >
+        <Pressable key={item.route} style={styles.row} onPress={() => router.push(item.route)}>
           <Text style={styles.icon}>{item.icon}</Text>
           <Text style={styles.label}>
             {item.label}

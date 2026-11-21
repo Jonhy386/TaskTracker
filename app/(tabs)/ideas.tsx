@@ -2,13 +2,13 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SwipeableRow } from '../components/SwipeableRow';
-import { showAlert } from '../lib/alert';
-import { formatDateTimeDMY } from '../lib/format';
-import { hapticWarning } from '../lib/haptics';
-import { deleteIdea, listIdeas, listProjects, setIdeaProject } from '../lib/queries';
-import { useThemeColors, type ThemeColors } from '../lib/theme';
-import type { Idea, Project } from '../lib/types';
+import { SwipeableRow } from '../../components/SwipeableRow';
+import { showAlert } from '../../lib/alert';
+import { formatDateTimeDMY } from '../../lib/format';
+import { hapticWarning } from '../../lib/haptics';
+import { deleteIdea, listIdeas, listProjects, setIdeaProject } from '../../lib/queries';
+import { useThemeColors, type ThemeColors } from '../../lib/theme';
+import type { Idea, Project } from '../../lib/types';
 
 export default function IdeasScreen() {
   const db = useSQLiteContext();
@@ -110,27 +110,21 @@ export default function IdeasScreen() {
         const project = item.project_id ? projectById.get(item.project_id) : null;
         return (
           <SwipeableRow onDelete={() => handleDelete(item)}>
-            <View style={styles.row}>
+            <View style={[styles.row, { borderLeftColor: project?.color ?? c.border }]}>
               <Text style={styles.title}>{item.title}</Text>
               <Text style={styles.body}>{item.body}</Text>
 
-              <Pressable style={styles.projectTag} onPress={() => handleSetProject(item)}>
-                {project ? (
-                  <>
-                    <View style={[styles.colorDot, { backgroundColor: project.color }]} />
-                    <Text style={styles.projectTagText}>{project.name}</Text>
-                  </>
-                ) : (
-                  <Text style={styles.projectTagTextMuted}>+ Link to project</Text>
-                )}
-              </Pressable>
-
               <View style={styles.footerRow}>
-                <Text style={styles.date}>{formatDateTimeDMY(item.created_at)}</Text>
-                <Pressable onPress={() => handlePromote(item)}>
-                  <Text style={styles.promoteText}>Promote to Task →</Text>
+                <Pressable style={styles.projectTag} onPress={() => handleSetProject(item)}>
+                  <Text style={project ? styles.projectTagText : styles.projectTagTextMuted}>
+                    {project ? project.name : '+ Link to project'}
+                  </Text>
+                </Pressable>
+                <Pressable style={styles.promoteButton} onPress={() => handlePromote(item)}>
+                  <Text style={styles.promoteButtonText}>Promote to Task</Text>
                 </Pressable>
               </View>
+              <Text style={styles.date}>{formatDateTimeDMY(item.created_at)}</Text>
             </View>
           </SwipeableRow>
         );
@@ -157,22 +151,28 @@ function createStyles(c: ThemeColors) {
     row: {
       padding: 14,
       borderRadius: 10,
+      borderLeftWidth: 4,
       backgroundColor: c.surface,
       marginBottom: 12,
     },
     title: { fontSize: 16, fontWeight: '600', color: c.text },
     body: { fontSize: 14, color: c.textSecondary, marginTop: 6, lineHeight: 20 },
-    projectTag: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
-    colorDot: { width: 8, height: 8, borderRadius: 4 },
-    projectTagText: { fontSize: 12, color: c.text, fontWeight: '600' },
-    projectTagTextMuted: { fontSize: 12, color: c.link },
     footerRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginTop: 8,
+      marginTop: 10,
     },
-    date: { fontSize: 12, color: c.textMuted },
-    promoteText: { fontSize: 12, color: c.text, fontWeight: '600' },
+    projectTag: { flexShrink: 1 },
+    projectTagText: { fontSize: 11, color: c.textMuted },
+    projectTagTextMuted: { fontSize: 12, color: c.link },
+    promoteButton: {
+      backgroundColor: c.accent,
+      borderRadius: 7,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+    },
+    promoteButtonText: { fontSize: 11, fontWeight: '700', color: c.accentText },
+    date: { fontSize: 11, color: c.textMuted, marginTop: 8 },
   });
 }

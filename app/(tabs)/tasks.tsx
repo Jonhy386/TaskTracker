@@ -1,14 +1,13 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { Stack } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ElapsedTime } from '../components/ElapsedTime';
-import { SwipeableRow } from '../components/SwipeableRow';
-import { showAlert } from '../lib/alert';
-import { formatDuration, formatDueDate } from '../lib/format';
-import { hapticImpact, hapticSuccess, hapticWarning } from '../lib/haptics';
+import { ElapsedTime } from '../../components/ElapsedTime';
+import { SwipeableRow } from '../../components/SwipeableRow';
+import { showAlert } from '../../lib/alert';
+import { formatDuration, formatDueDate } from '../../lib/format';
+import { hapticImpact, hapticSuccess, hapticWarning } from '../../lib/haptics';
 import {
   deleteTask,
   getRunningSession,
@@ -16,9 +15,9 @@ import {
   listTasks,
   markTaskDone,
   stopTimer,
-} from '../lib/queries';
-import { useThemeColors, type ThemeColors } from '../lib/theme';
-import type { Project, Task, TaskStatus, TimeSession } from '../lib/types';
+} from '../../lib/queries';
+import { useThemeColors, type ThemeColors } from '../../lib/theme';
+import type { Project, Task, TaskStatus, TimeSession } from '../../lib/types';
 
 const STATUS_FILTERS: { label: string; value: TaskStatus | null }[] = [
   { label: 'Active', value: null },
@@ -93,16 +92,6 @@ export default function TasksScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen
-        options={{
-          headerRight: () => (
-            <Pressable onPress={() => router.push('/menu')} hitSlop={8}>
-              <Text style={styles.hamburgerText}>☰</Text>
-            </Pressable>
-          ),
-        }}
-      />
-
       {running && running.task_id === null && (
         <View style={styles.projectTimerBanner}>
           <Pressable style={styles.projectTimerInfo} onPress={() => router.push('/log-time')}>
@@ -205,11 +194,11 @@ export default function TasksScreen() {
       />
 
       <View style={[styles.fabRow, { bottom: 24 + insets.bottom }]}>
-        <Pressable style={styles.fab} onPress={() => router.push('/new-task')}>
-          <Text style={styles.fabTextBold}>＋</Text>
-        </Pressable>
         <Pressable style={styles.fab} onPress={() => router.push('/capture')}>
           <Text style={styles.fabText}>🎤</Text>
+        </Pressable>
+        <Pressable style={[styles.fab, styles.fabPrimary]} onPress={() => router.push('/new-task')}>
+          <Text style={styles.fabTextBold}>＋</Text>
         </Pressable>
       </View>
     </View>
@@ -262,7 +251,6 @@ function StatusBadge({ status }: { status: TaskStatus }) {
 function createStyles(c: ThemeColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-    hamburgerText: { fontSize: 22, paddingHorizontal: 8, color: c.text },
     projectTimerBanner: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -295,16 +283,17 @@ function createStyles(c: ThemeColors) {
     },
     fabRow: {
       position: 'absolute',
-      left: 24,
       right: 24,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+      flexDirection: 'column',
+      gap: 12,
     },
     fab: {
-      width: 60,
-      height: 60,
-      borderRadius: 30,
-      backgroundColor: c.accent,
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
       alignItems: 'center',
       justifyContent: 'center',
       shadowColor: '#000',
@@ -313,8 +302,9 @@ function createStyles(c: ThemeColors) {
       shadowRadius: 4,
       elevation: 4,
     },
-    fabText: { fontSize: 24 },
-    fabTextBold: { fontSize: 28, fontWeight: '600', color: c.accentText },
+    fabPrimary: { backgroundColor: c.accent, borderWidth: 0 },
+    fabText: { fontSize: 22 },
+    fabTextBold: { fontSize: 26, fontWeight: '600', color: c.accentText },
     filterRow: { flexGrow: 0, paddingHorizontal: 12, paddingTop: 8 },
     chip: {
       paddingHorizontal: 12,
